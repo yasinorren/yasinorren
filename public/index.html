@@ -1,428 +1,86 @@
 <!DOCTYPE html>
-<html lang="tr" data-lang="tr">
+<html lang="tr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="Innomed Life Sciences – Hazır Mikrobiyoloji Kültür Besiyeri Üreticisi. Klinik, endüstriyel ve çevre kontrol besiyerleri. İstanbul, Türkiye."/>
-  <title>Innomed Life Sciences | Prepared Culture Media Manufacturer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/assets/css/style.css"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bilim Platformu — Bilimsel Makale ve Haber Paylaşımı</title>
+  <meta name="description" content="Türkçe bilim makaleleri, araştırma haberleri ve bilimsel içerikler için güvenilir platform.">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-
-<!-- ████ NAVBAR ████ -->
-<header class="navbar" id="navbar">
-  <div class="container nav-inner">
-    <a href="#home" class="logo">
-      <svg class="logo-mark" width="38" height="38" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#0A5C8A"/><path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="10" r="2.8" fill="#26C6DA"/></svg>
-      <div class="logo-text"><span class="logo-name">INNOMED</span><span class="logo-sub">Life Sciences</span></div>
-    </a>
-    <nav class="main-nav" id="mainNav">
-      <a href="#about" data-i18n="nav.about">Hakkımızda</a>
-      <a href="#products" data-i18n="nav.products">Ürünler</a>
-      <a href="#helicomed" data-i18n="nav.helicomed">HelicoMed</a>
-      <a href="#quality" data-i18n="nav.quality">Kalite</a>
-      <a href="#contact" class="btn-nav" data-i18n="nav.contact">İletişim</a>
-    </nav>
-    <div class="nav-actions">
-      <button class="lang-toggle" id="langBtn" title="Switch Language">
-        <span class="lang-active" id="langLabel">TR</span>
-        <span class="lang-sep">|</span>
-        <span class="lang-other" id="langOther">EN</span>
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="site-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Bilim Platformu
+      </a>
+      <button class="hamburger" id="hamburger" aria-label="Menü">
+        <span></span><span></span><span></span>
       </button>
-      <a href="/admin" class="admin-link" data-i18n="nav.admin">Admin</a>
-      <button class="hamburger" id="hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="/" class="active">Ana Sayfa</a></li>
+          <li><a href="/submit.html">Makale Gönder</a></li>
+          <li id="navModLink" class="hidden"><a href="/moderation.html">Moderasyon</a></li>
+          <li id="navAdminLink" class="hidden"><a href="/admin.html">Yönetim</a></li>
+        </ul>
+      </nav>
+      <div class="nav-user" id="navUser">
+        <a href="/login.html" class="btn btn-secondary btn-sm">Giriş Yap</a>
+        <a href="/register.html" class="btn btn-primary btn-sm">Kayıt Ol</a>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
-<!-- ████ HERO ████ -->
-<section id="home" class="hero">
-  <div class="hero-bg">
-    <svg class="hero-svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-      <!-- Molecular network -->
-      <defs>
-        <radialGradient id="rg1" cx="30%" cy="40%"><stop offset="0%" stop-color="#26C6DA" stop-opacity="0.15"/><stop offset="100%" stop-color="#0A5C8A" stop-opacity="0"/></radialGradient>
-        <radialGradient id="rg2" cx="80%" cy="60%"><stop offset="0%" stop-color="#0A5C8A" stop-opacity="0.2"/><stop offset="100%" stop-color="#0A5C8A" stop-opacity="0"/></radialGradient>
-      </defs>
-      <rect width="1440" height="900" fill="url(#rg1)"/>
-      <rect width="1440" height="900" fill="url(#rg2)"/>
-      <!-- Atoms -->
-      <g class="mol-group" opacity="0.18">
-        <circle cx="900" cy="200" r="70" stroke="#26C6DA" stroke-width="1" fill="none"/>
-        <circle cx="900" cy="200" r="8" fill="#26C6DA"/>
-        <circle cx="970" cy="200" r="5" fill="#26C6DA"/>
-        <circle cx="900" cy="270" r="5" fill="#26C6DA"/>
-        <circle cx="830" cy="200" r="5" fill="#26C6DA"/>
-        <circle cx="900" cy="130" r="5" fill="#26C6DA"/>
-        <line x1="900" y1="200" x2="970" y2="200" stroke="#26C6DA" stroke-width="1"/>
-        <line x1="900" y1="200" x2="900" y2="270" stroke="#26C6DA" stroke-width="1"/>
-        <line x1="900" y1="200" x2="830" y2="200" stroke="#26C6DA" stroke-width="1"/>
-        <line x1="900" y1="200" x2="900" y2="130" stroke="#26C6DA" stroke-width="1"/>
-        <circle cx="1050" cy="350" r="50" stroke="#0A5C8A" stroke-width="1" fill="none"/>
-        <circle cx="1050" cy="350" r="6" fill="#0A5C8A"/>
-        <line x1="1050" y1="350" x2="970" y2="200" stroke="#26C6DA" stroke-width="0.8" stroke-dasharray="4,4"/>
-        <circle cx="1150" cy="180" r="4" fill="#26C6DA"/>
-        <circle cx="1200" cy="300" r="4" fill="#26C6DA"/>
-        <circle cx="1100" cy="420" r="4" fill="#26C6DA"/>
-        <line x1="1150" y1="180" x2="1200" y2="300" stroke="#26C6DA" stroke-width="0.8"/>
-        <line x1="1200" y1="300" x2="1100" y2="420" stroke="#26C6DA" stroke-width="0.8"/>
-        <line x1="1100" y1="420" x2="1050" y2="350" stroke="#26C6DA" stroke-width="0.8"/>
-        <circle cx="700" cy="600" r="40" stroke="#26C6DA" stroke-width="0.8" fill="none"/>
-        <circle cx="700" cy="600" r="5" fill="#26C6DA" opacity="0.6"/>
-        <circle cx="750" cy="500" r="3" fill="#26C6DA" opacity="0.5"/>
-        <circle cx="650" cy="680" r="3" fill="#26C6DA" opacity="0.5"/>
-        <line x1="700" y1="600" x2="750" y2="500" stroke="#26C6DA" stroke-width="0.7"/>
-        <line x1="700" y1="600" x2="650" y2="680" stroke="#26C6DA" stroke-width="0.7"/>
-      </g>
-      <!-- Grid lines -->
-      <g opacity="0.04" stroke="#26C6DA" stroke-width="0.5">
-        <line x1="0" y1="180" x2="1440" y2="180"/>
-        <line x1="0" y1="360" x2="1440" y2="360"/>
-        <line x1="0" y1="540" x2="1440" y2="540"/>
-        <line x1="0" y1="720" x2="1440" y2="720"/>
-        <line x1="288" y1="0" x2="288" y2="900"/>
-        <line x1="576" y1="0" x2="576" y2="900"/>
-        <line x1="864" y1="0" x2="864" y2="900"/>
-        <line x1="1152" y1="0" x2="1152" y2="900"/>
-      </g>
-    </svg>
-  </div>
-  <div class="container hero-content">
-    <div class="hero-badge"><span class="pulse-dot"></span><span data-i18n="hero.badge">ISO 14644-1 & EU GMP Sınıf C Onaylı Üretim</span></div>
-    <h1 class="hero-title" data-i18n="hero.title">Hazır Mikrobiyoloji<br/><span class="hl">Besiyeri Üreticisi</span></h1>
-    <p class="hero-desc" data-i18n="hero.desc">Klinik tanı, endüstriyel mikrobiyoloji ve çevre kontrol uygulamaları için CE işaretli ve farmakope uyumlu hazır besiyerleri. İlaç, gıda, kozmetik ve sağlık sektörlerine küresel tedarik.</p>
-    <div class="hero-cta">
-      <a href="#products" class="btn btn-primary" data-i18n="hero.cta1">Ürün Kataloğu</a>
-      <a href="#contact" class="btn btn-ghost" data-i18n="hero.cta2">Teklif İsteyin</a>
-    </div>
-    <div class="hero-metrics">
-      <div class="metric"><span class="mnum" data-target="20">0</span><span class="munit">+</span><span class="mlabel" data-i18n="hero.m1">Yıllık Deneyim</span></div>
-      <div class="mdivider"></div>
-      <div class="metric"><span class="mnum" data-target="500">0</span><span class="munit">+</span><span class="mlabel" data-i18n="hero.m2">Ürün Formülasyonu</span></div>
-      <div class="mdivider"></div>
-      <div class="metric"><span class="mnum" data-target="30">0</span><span class="munit">+</span><span class="mlabel" data-i18n="hero.m3">Ülkeye İhracat</span></div>
-      <div class="mdivider"></div>
-      <div class="metric"><span class="mnum" data-target="99">0</span><span class="munit">%</span><span class="mlabel" data-i18n="hero.m4">Müşteri Memnuniyeti</span></div>
-    </div>
-  </div>
-  <div class="hero-scroll"><div class="scroll-line"></div></div>
-</section>
-
-<!-- ████ CERTIFICATIONS STRIP ████ -->
-<div class="cert-strip">
-  <div class="container cert-strip-inner">
-    <div class="cert-item"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M6 11L9 14L16 7" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round"/></svg><span>ISO 14644-1 Class 7</span></div>
-    <div class="cert-sep"></div>
-    <div class="cert-item"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M6 11L9 14L16 7" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round"/></svg><span>EU GMP Annex 1 Class C</span></div>
-    <div class="cert-sep"></div>
-    <div class="cert-item"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M6 11L9 14L16 7" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round"/></svg><span>CE Certified</span></div>
-    <div class="cert-sep"></div>
-    <div class="cert-item"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M6 11L9 14L16 7" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round"/></svg><span>USP / EP / JP Compliant</span></div>
-    <div class="cert-sep"></div>
-    <div class="cert-item"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M6 11L9 14L16 7" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round"/></svg><span>ISO 9001:2015</span></div>
-  </div>
-</div>
-
-<!-- ████ ABOUT ████ -->
-<section id="about" class="section about-section">
-  <div class="container about-grid">
-    <div class="about-media reveal">
-      <div class="about-card-main">
-        <div class="about-card-icon">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect width="56" height="56" rx="16" fill="#EAF4FB"/><path d="M20 12 L20 36 C20 41.5 23.6 44 28 44 C32.4 44 36 41.5 36 36 L36 12" stroke="#0A5C8A" stroke-width="2.5" stroke-linecap="round"/><line x1="16" y1="22" x2="40" y2="22" stroke="#0A5C8A" stroke-width="2.5" stroke-linecap="round"/><circle cx="25" cy="33" r="2.5" fill="#26C6DA"/><circle cx="31" cy="37" r="1.8" fill="#0A5C8A" opacity="0.6"/></svg>
-        </div>
-        <h3 data-i18n="about.card1.title">Hazır Besiyeri Üreticisi</h3>
-        <p data-i18n="about.card1.text">Tam otomatik dolum hatları ve onaylı temiz oda tesisleri</p>
-      </div>
-      <div class="about-card-secondary">
-        <div class="astat"><span class="astat-n">2.500 m²</span><span class="astat-l" data-i18n="about.facility">Üretim Alanı</span></div>
-        <div class="astat-sep"></div>
-        <div class="astat"><span class="astat-n">Class C</span><span class="astat-l" data-i18n="about.cleanroom">Temiz Oda Sınıfı</span></div>
-      </div>
-      <div class="about-float-tag">
-        <span>📍</span>
-        <div><strong>Ümraniye, İstanbul</strong><small>Merkez & Üretim Tesisi</small></div>
-      </div>
-    </div>
-    <div class="about-text reveal-right">
-      <span class="section-label" data-i18n="about.label">Hakkımızda</span>
-      <h2 data-i18n="about.title">Hazır Kültür Besiyerinde<br/><span class="grad-text">Küresel Standart</span></h2>
-      <p data-i18n="about.p1">Innomed Life Sciences, İlaç, kozmetik, su ve gıda sektörleri dahil olmak üzere pek çok endüstriye hazır mikrobiyolojik kültür besiyeri üreten İstanbul merkezli bir üretim şirketidir.</p>
-      <p data-i18n="about.p2">Şirketler daha verimli iş akışı sağlamaya ve maliyeti minimize etmeye çalıştıkça, hazır kullanıma sunulan yüksek kaliteli besiyerlerine olan talep her sektörde artış göstermektedir. INNOMED, her endüstrinin özel gereksinimleri, standartları ve yasal mevzuatı hakkında derin uzmanlık geliştirerek müşteri beklentilerini karşılayan ürünler sunmaktadır.</p>
-      <div class="about-features">
-        <div class="af-item"><div class="af-check">✓</div><div><strong data-i18n="about.f1t">Tam Otomatik Üretim Hatları</strong><span data-i18n="about.f1s">Modern dolum ve paketleme ekipmanları ile hassas üretim</span></div></div>
-        <div class="af-item"><div class="af-check">✓</div><div><strong data-i18n="about.f2t">Onaylı Temiz Oda Tesisleri</strong><span data-i18n="about.f2s">ISO 14644-1 ve EU GMP Class C onaylı üretim ortamı</span></div></div>
-        <div class="af-item"><div class="af-check">✓</div><div><strong data-i18n="about.f3t">Çoklu Format Seçenekleri</strong><span data-i18n="about.f3s">Petri, şişe, tüp ve torba formatında üretim kapasitesi</span></div></div>
-        <div class="af-item"><div class="af-check">✓</div><div><strong data-i18n="about.f4t">Farmakope Uyumluluğu</strong><span data-i18n="about.f4s">USP, EP ve JP standartlarına tam uyumluluk</span></div></div>
-      </div>
-      <a href="#contact" class="btn btn-primary" data-i18n="about.cta">Teknik Bilgi Alın</a>
-    </div>
-  </div>
-</section>
-
-<!-- ████ PRODUCTS ████ -->
-<section id="products" class="section products-section">
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="section-label" data-i18n="products.label">Ürün Portföyü</span>
-      <h2 data-i18n="products.title">Kapsamlı <span class="grad-text">Ürün Gamımız</span></h2>
-      <p data-i18n="products.desc">Klinik tanı, endüstriyel test ve çevre kontrolü için uluslararası standartlara uygun hazır besiyerleri.</p>
-    </div>
-
-    <!-- Search & Filter -->
-    <div class="products-toolbar reveal">
-      <div class="search-box">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="#5A7184" stroke-width="1.5"/><path d="M12 12 L16 16" stroke="#5A7184" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <input type="text" id="productSearch" placeholder="Ürün ara..." data-i18n-placeholder="products.search"/>
-      </div>
-      <div class="filter-tabs" id="filterTabs">
-        <button class="filter-tab active" data-cat="all" data-i18n="products.all">Tümü</button>
-        <button class="filter-tab" data-cat="clinical" data-i18n="products.clinical">Klinik Mikrobiyoloji</button>
-        <button class="filter-tab" data-cat="industrial" data-i18n="products.industrial">Endüstriyel Mikrobiyoloji</button>
-        <button class="filter-tab" data-cat="environment" data-i18n="products.environment">Çevre Kontrolü</button>
-        <button class="filter-tab" data-cat="helicomed" data-i18n="products.helicomed">HelicoMed</button>
-      </div>
-    </div>
-
-    <div class="products-grid" id="productsGrid">
-      <div class="products-loading">
-        <div class="spinner"></div>
-        <span data-i18n="products.loading">Ürünler yükleniyor...</span>
-      </div>
-    </div>
-    <div class="products-empty hidden" id="productsEmpty">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#CBD5E0" stroke-width="2"/><path d="M16 24H32M24 16V32" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
-      <p data-i18n="products.noResult">Arama kriterlerine uygun ürün bulunamadı.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ████ HELICOMED PLUS SPOTLIGHT ████ -->
-<section id="helicomed" class="section helicomed-section">
-  <div class="container helicomed-grid">
-    <div class="helicomed-text reveal">
-      <div class="hm-badge"><span class="gold-dot"></span><span data-i18n="hm.badge">Öne Çıkan Ürün</span></div>
-      <h2 data-i18n="hm.title">HelicoMed Plus —<br/><span class="grad-text">H. pylori Hızlı Üreaz Testi</span></h2>
-      <p data-i18n="hm.desc">Mide mukoza biyopsilerinde <em>Helicobacter pylori</em> tespitinde altın standart. Eski agar jel bazlı testlere kıyasla önemli iyileştirmeler sunan gelişmiş formül: daha hızlı, daha kolay, daha düşük maliyetli ve daha doğru.</p>
-      <div class="hm-specs">
-        <div class="hm-spec"><span class="spec-val">15-30 dk</span><span class="spec-lbl" data-i18n="hm.s1">Sonuç Süresi</span></div>
-        <div class="hm-spec"><span class="spec-val">≥90%</span><span class="spec-lbl" data-i18n="hm.s2">Duyarlılık</span></div>
-        <div class="hm-spec"><span class="spec-val">≥95%</span><span class="spec-lbl" data-i18n="hm.s3">Özgüllük</span></div>
-        <div class="hm-spec"><span class="spec-val">CE ✓</span><span class="spec-lbl" data-i18n="hm.s4">Sertifikasyon</span></div>
-      </div>
-      <div class="hm-points">
-        <div class="hm-point"><span class="hm-dot"></span><span data-i18n="hm.p1">Aktif H. pylori enfeksiyonunda altın standart biyopsi yöntemi</span></div>
-        <div class="hm-point"><span class="hm-dot"></span><span data-i18n="hm.p2">Endoskopi sırasında hızlı, yerinde sonuç</span></div>
-        <div class="hm-point"><span class="hm-dot"></span><span data-i18n="hm.p3">Pozitif sonuçta belirgin renk değişimi</span></div>
-        <div class="hm-point"><span class="hm-dot"></span><span data-i18n="hm.p4">Minimum teknik bilgi gerektirir, kullanımı kolay</span></div>
-      </div>
-      <a href="#contact" class="btn btn-primary" data-i18n="hm.cta">Ürün Bilgisi & Teklif İste</a>
-    </div>
-    <div class="helicomed-visual reveal-right">
-      <div class="hm-card">
-        <div class="hm-card-header">
-          <div class="hm-logo-area">
-            <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#0A5C8A"/><path d="M12 30L20 12L28 30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="15" y1="24" x2="25" y2="24" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="20" cy="12" r="2.5" fill="#26C6DA"/></svg>
-            <div><span class="hm-prod-name">HelicoMed<sup>®</sup> Plus</span><span class="hm-prod-cat" data-i18n="hm.cat">Rapid Urease Test</span></div>
-          </div>
-          <span class="hm-ce">CE</span>
-        </div>
-        <div class="hm-card-body">
-          <div class="hm-diagram">
-            <div class="hm-tube positive">
-              <div class="tube-inner"></div>
-              <div class="tube-label positive-lbl" data-i18n="hm.pos">POZİTİF<br/><small>H. pylori (+)</small></div>
-            </div>
-            <div class="hm-tube negative">
-              <div class="tube-inner"></div>
-              <div class="tube-label negative-lbl" data-i18n="hm.neg">NEGATİF<br/><small>H. pylori (−)</small></div>
-            </div>
-          </div>
-          <div class="hm-principle">
-            <p data-i18n="hm.principle"><strong>Çalışma Prensibi:</strong> H. pylori tarafından üretilen güçlü üreaz enzimi, üre substratını CO₂ ve NH₃'e dönüştürerek pH'ı yükseltir. Belirteç renk değişimi pozitif sonucu gösterir.</p>
-          </div>
-        </div>
-        <div class="hm-card-footer">
-          <div class="hm-kit-info"><span data-i18n="hm.kit">Kit içeriği: 25 test / kit</span></div>
-          <div class="hm-storage"><span data-i18n="hm.storage">Saklama: 2-8°C</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ████ INDUSTRIES ████ -->
-<section class="section industries-section">
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="section-label" data-i18n="ind.label">Hizmet Alanlarımız</span>
-      <h2 data-i18n="ind.title">Hangi <span class="grad-text">Sektörlere</span> Hizmet Veriyoruz?</h2>
-    </div>
-    <div class="industries-grid">
-      <div class="ind-card reveal" data-delay="0">
-        <div class="ind-icon"><svg width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#EAF4FB"/><path d="M14 34 Q18 22 22 26 Q26 30 30 18" stroke="#0A5C8A" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="22" cy="16" r="5" stroke="#0A5C8A" stroke-width="2"/><path d="M20 16 H24 M22 14 V18" stroke="#0A5C8A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-        <h3 data-i18n="ind.i1t">Klinik Mikrobiyoloji</h3>
-        <p data-i18n="ind.i1d">Hastane ve klinik laboratuvarları için CE işaretli, kullanıma hazır kültür plakaları, tüpler ve tanısal test kitleri.</p>
-        <div class="ind-tags"><span>Hastaneler</span><span>Klinikler</span><span>Tıp Lab.</span></div>
-      </div>
-      <div class="ind-card reveal" data-delay="100">
-        <div class="ind-icon"><svg width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#E8F8F5"/><rect x="12" y="14" width="20" height="18" rx="2" stroke="#00897B" stroke-width="2"/><path d="M16 14 V10 H28 V14" stroke="#00897B" stroke-width="2" stroke-linecap="round"/><path d="M18 22 H26 M18 26 H23" stroke="#00897B" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-        <h3 data-i18n="ind.i2t">İlaç Endüstrisi</h3>
-        <p data-i18n="ind.i2d">USP, EP ve JP farmakope standartlarına uygun sterilite testleri ve biyoburden analizi için hazır besiyerleri.</p>
-        <div class="ind-tags"><span>Pharma QC</span><span>Sterilite</span><span>Biyoburden</span></div>
-      </div>
-      <div class="ind-card reveal" data-delay="200">
-        <div class="ind-icon"><svg width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#FFF3E0"/><path d="M10 34 L18 18 L22 26 L26 14 L34 34" stroke="#F57C00" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3 data-i18n="ind.i3t">Gıda & İçecek</h3>
-        <p data-i18n="ind.i3d">Gıda güvenliği testleri için total aerobik sayım, koliform, maya/küf ve patojen tespit besiyerleri.</p>
-        <div class="ind-tags"><span>Gıda Güvenliği</span><span>HACCP</span><span>Kalite Kontrol</span></div>
-      </div>
-      <div class="ind-card reveal" data-delay="300">
-        <div class="ind-icon"><svg width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#F3E5F5"/><circle cx="22" cy="22" r="10" stroke="#7B1FA2" stroke-width="2"/><path d="M18 22 H26 M22 18 V26" stroke="#7B1FA2" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-        <h3 data-i18n="ind.i4t">Kozmetik</h3>
-        <p data-i18n="ind.i4d">Kozmetik ürünlerde mikrobiyel limit testleri için selektif besiyerleri. ISO 17516 uyumlu.</p>
-        <div class="ind-tags"><span>Kozmetik QC</span><span>ISO 17516</span></div>
-      </div>
-      <div class="ind-card reveal" data-delay="400">
-        <div class="ind-icon"><svg width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#E8EAF6"/><path d="M22 10 Q32 16 32 26 Q32 34 22 38 Q12 34 12 26 Q12 16 22 10Z" stroke="#3949AB" stroke-width="2" fill="none"/><circle cx="22" cy="26" r="4" fill="#3949AB" opacity="0.5"/></svg></div>
-        <h3 data-i18n="ind.i5t">Su Analizi</h3>
-        <p data-i18n="ind.i5d">İçme suyu, atık su ve saf su analizleri için koliform, E. coli ve heterotrofik sayım besiyerleri.</p>
-        <div class="ind-tags"><span>İçme Suyu</span><span>Atık Su</span><span>Saf Su</span></div>
-      </div>
-      <div class="ind-card reveal" data-delay="500">
-        <div class="ind-icon"><svg width="44" height="44" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#E8F5E9"/><rect x="14" y="18" width="16" height="12" rx="2" stroke="#2E7D32" stroke-width="2"/><path d="M18 18 V14 L26 14 V18" stroke="#2E7D32" stroke-width="2" stroke-linecap="round"/><circle cx="22" cy="28" r="2" fill="#2E7D32" opacity="0.6"/></svg></div>
-        <h3 data-i18n="ind.i6t">Çevre Kontrolü</h3>
-        <p data-i18n="ind.i6d">Temiz oda ve aseptik üretim alanlarında yüzey, hava ve personel izleme için temas plakaları ve çökelme plakaları.</p>
-        <div class="ind-tags"><span>GMP</span><span>Temiz Oda</span><span>EU Annex 1</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ████ QUALITY ████ -->
-<section id="quality" class="section quality-section">
-  <div class="quality-dark">
-    <div class="container quality-grid">
-      <div class="quality-text reveal">
-        <span class="section-label section-label-light" data-i18n="q.label">Kalite Güvencesi</span>
-        <h2 style="color:#fff" data-i18n="q.title">Uluslararası Standartlarda<br/><span style="color:#26C6DA">Üretim Kalitesi</span></h2>
-        <p style="color:#A0C4DD" data-i18n="q.desc">Tüm ürünlerimiz, müşteri gereksinimlerine bağlı olarak petri kaplarına, şişelere, tüplere veya torbalara aktarılmaktadır. Dolum ve nihai paketlemenin tamamı ISO 14644-1 ve EU GMP Sınıf C onaylı temiz oda alanlarında gerçekleştirilmektedir.</p>
-        <div class="quality-certs">
-          <div class="qcert"><div class="qc-icon"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" stroke="#26C6DA" stroke-width="1.5" fill="none"/><path d="M7 12L10 15L17 8" stroke="#26C6DA" stroke-width="2" stroke-linecap="round"/></svg></div><div><strong>ISO 14644-1 (Sınıf 7)</strong><span data-i18n="q.c1">Temiz Oda Standardı — onaylı üretim ortamı</span></div></div>
-          <div class="qcert"><div class="qc-icon"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" stroke="#26C6DA" stroke-width="1.5" fill="none"/><path d="M7 12L10 15L17 8" stroke="#26C6DA" stroke-width="2" stroke-linecap="round"/></svg></div><div><strong>EU GMP Annex 1 — Class C</strong><span data-i18n="q.c2">Avrupa İyi Üretim Uygulamaları — steril ürün koşulları</span></div></div>
-          <div class="qcert"><div class="qc-icon"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" stroke="#26C6DA" stroke-width="1.5" fill="none"/><path d="M7 12L10 15L17 8" stroke="#26C6DA" stroke-width="2" stroke-linecap="round"/></svg></div><div><strong>CE — IVD Direktifi 98/79/EC</strong><span data-i18n="q.c3">Klinik ürünlerde Avrupa uygunluk işareti</span></div></div>
-          <div class="qcert"><div class="qc-icon"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" stroke="#26C6DA" stroke-width="1.5" fill="none"/><path d="M7 12L10 15L17 8" stroke="#26C6DA" stroke-width="2" stroke-linecap="round"/></svg></div><div><strong>USP / EP / JP Harmonize Farmakope</strong><span data-i18n="q.c4">Endüstriyel ürünler uluslararası farmakope uyumlu</span></div></div>
-        </div>
-      </div>
-      <div class="quality-stats reveal-right">
-        <div class="qstat-card"><div class="qstat-num">99<span>%</span></div><div class="qstat-lbl" data-i18n="q.s1">Müşteri Memnuniyeti</div></div>
-        <div class="qstat-card qstat-accent"><div class="qstat-num">48<span>sa</span></div><div class="qstat-lbl" data-i18n="q.s2">Ortalama Teslimat</div></div>
-        <div class="qstat-card"><div class="qstat-num">500<span>+</span></div><div class="qstat-lbl" data-i18n="q.s3">Formülasyon</div></div>
-        <div class="qstat-card qstat-teal"><div class="qstat-num">24<span>/7</span></div><div class="qstat-lbl" data-i18n="q.s4">Teknik Destek</div></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ████ CONTACT ████ -->
-<section id="contact" class="section contact-section">
-  <div class="container contact-grid">
-    <div class="contact-info reveal">
-      <span class="section-label" data-i18n="c.label">İletişim</span>
-      <h2 data-i18n="c.title">Teklif veya Bilgi İçin<br/><span class="grad-text">Bize Ulaşın</span></h2>
-      <p data-i18n="c.desc">Ürün kataloglarımız, özel formülasyon talepleri veya teknik destek için ekibimiz her zaman yanınızda.</p>
-      <div class="contact-items">
-        <div class="ci">
-          <div class="ci-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 3H17C18.1 3 19 3.9 19 5V15C19 16.1 18.1 17 17 17H3C1.9 17 1 16.1 1 15V5C1 3.9 1.9 3 3 3Z" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M1 5L10 11L19 5" stroke="#0A5C8A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-          <div><strong data-i18n="c.email">E-posta</strong><a href="mailto:info@innomedlifesci.com">info@innomedlifesci.com</a></div>
-        </div>
-        <div class="ci">
-          <div class="ci-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 2H8L10 7L7.5 8.5C8.9 11.5 11.5 14.1 14.5 15.5L16 13L21 15V19C21 20.1 20.1 21 19 21C9.6 20.5 0.5 11.4 0 2C0 0.9 0.9 0 2 0Z" stroke="#0A5C8A" stroke-width="1.5" fill="none"/></svg></div>
-          <div><strong data-i18n="c.phone">Telefon</strong><a href="tel:+905437695450">+90 543 769 54 50</a></div>
-        </div>
-        <div class="ci">
-          <div class="ci-icon"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2C6.13 2 3 5.13 3 9C3 14.25 10 20 10 20C10 20 17 14.25 17 9C17 5.13 13.87 2 10 2Z" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><circle cx="10" cy="9" r="2.5" stroke="#0A5C8A" stroke-width="1.5"/></svg></div>
-          <div><strong data-i18n="c.addr">Adres</strong><span>Aşağı Dudullu Mah., Alemdağ Cad., Yavuz İş Hanı No:511/2, Ümraniye, İstanbul</span></div>
-        </div>
-        <div class="ci">
-          <div class="ci-icon"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" stroke="#0A5C8A" stroke-width="1.5" fill="none"/><path d="M10 5V10L13 13" stroke="#0A5C8A" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-          <div><strong data-i18n="c.hours">Çalışma Saatleri</strong><span data-i18n="c.hoursVal">Pzt – Cum: 09:00 – 18:00</span></div>
-        </div>
-      </div>
-    </div>
-    <div class="contact-form-wrap reveal-right">
-      <form class="contact-form" id="contactForm" novalidate>
-        <div class="form-row">
-          <div class="fg"><label data-i18n="c.name">Ad Soyad *</label><input type="text" id="fname" name="customer_name" required/></div>
-          <div class="fg"><label data-i18n="c.company">Şirket</label><input type="text" name="company"/></div>
-        </div>
-        <div class="form-row">
-          <div class="fg"><label data-i18n="c.emailL">E-posta *</label><input type="email" id="femail" name="customer_email" required/></div>
-          <div class="fg"><label data-i18n="c.phoneL">Telefon</label><input type="tel" name="customer_phone"/></div>
-        </div>
-        <div class="fg"><label data-i18n="c.subject">Konu</label>
-          <select name="subject">
-            <option value="" data-i18n="c.sel">Konu seçiniz</option>
-            <option value="Ürün Bilgisi" data-i18n="c.o1">Ürün Bilgisi</option>
-            <option value="Fiyat Teklifi" data-i18n="c.o2">Fiyat Teklifi</option>
-            <option value="Teknik Destek" data-i18n="c.o3">Teknik Destek</option>
-            <option value="İhracat/İthalat" data-i18n="c.o4">İhracat / İthalat</option>
-            <option value="Diğer" data-i18n="c.o5">Diğer</option>
-          </select>
-        </div>
-        <div class="fg"><label data-i18n="c.msg">Mesajınız *</label><textarea name="message" rows="4" required></textarea></div>
-        <button type="submit" class="btn btn-primary btn-full">
-          <span data-i18n="c.send">Gönder</span>
-          <svg width="18" height="18" viewBox="0 0 18 18"><path d="M2 9H16M10 3L16 9L10 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <h1>Bilim Dünyasından Son Gelişmeler</h1>
+      <p>Hakemli kaynakçalar ile desteklenen bilimsel makale ve haberler. Okuyun, paylaşın, tartışın.</p>
+      <form class="search-bar" id="searchForm">
+        <input type="text" id="searchInput" placeholder="Makale veya konu arayın..." autocomplete="off" maxlength="120">
+        <button type="submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
-        <div class="form-ok hidden" id="formOk">
-          <svg width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="#00897B"/><path d="M5 9L8 12L13 6" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
-          <span data-i18n="c.ok">Mesajınız iletildi. En kısa sürede dönüş yapacağız.</span>
-        </div>
       </form>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ████ FOOTER ████ -->
-<footer class="footer">
-  <div class="container footer-grid">
-    <div class="footer-brand">
-      <a href="#home" class="logo"><svg class="logo-mark" width="34" height="34" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#0A5C8A"/><path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="10" r="2.8" fill="#26C6DA"/></svg><div class="logo-text"><span class="logo-name" style="color:#fff">INNOMED</span><span class="logo-sub" style="color:#90CAF9">Life Sciences</span></div></a>
-      <p data-i18n="footer.tagline">Hazır mikrobiyoloji besiyeri üretiminde küresel standart. İstanbul, Türkiye.</p>
+  <main>
+    <div class="container">
+      <!-- Kategori filtreleri -->
+      <div class="category-strip" id="categoryStrip">
+        <button class="cat-pill active" data-slug="">Tümü</button>
+        <!-- JS tarafından doldurulacak -->
+      </div>
+
+      <!-- Makale listesi -->
+      <div id="articlesContainer">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination"></div>
     </div>
-    <div class="footer-col"><h4 data-i18n="footer.links">Hızlı Bağlantılar</h4><ul><li><a href="#about" data-i18n="nav.about">Hakkımızda</a></li><li><a href="#products" data-i18n="nav.products">Ürünler</a></li><li><a href="#helicomed">HelicoMed Plus</a></li><li><a href="#quality" data-i18n="nav.quality">Kalite</a></li><li><a href="#contact" data-i18n="nav.contact">İletişim</a></li></ul></div>
-    <div class="footer-col"><h4 data-i18n="footer.cats">Ürün Kategorileri</h4><ul><li><a href="#products" data-i18n="products.clinical">Klinik Mikrobiyoloji</a></li><li><a href="#products" data-i18n="products.industrial">Endüstriyel Mikrobiyoloji</a></li><li><a href="#products" data-i18n="products.environment">Çevre Kontrolü</a></li><li><a href="#helicomed">HelicoMed Plus</a></li></ul></div>
-    <div class="footer-col"><h4 data-i18n="footer.contact">İletişim</h4><ul><li><a href="mailto:info@innomedlifesci.com">info@innomedlifesci.com</a></li><li><a href="tel:+905437695450">+90 543 769 54 50</a></li><li><span>Ümraniye, İstanbul, Türkiye</span></li></ul></div>
-  </div>
-  <div class="footer-bottom"><div class="container footer-bottom-inner"><p>&copy; 2024 Innomed Life Sciences. <span data-i18n="footer.rights">Tüm hakları saklıdır.</span></p><a href="/admin" data-i18n="footer.admin">Admin Paneli</a></div></div>
-</footer>
+  </main>
 
-<!-- Product Inquiry Modal -->
-<div class="modal-overlay hidden" id="inquiryModal">
-  <div class="modal">
-    <button class="modal-close" id="modalClose">&times;</button>
-    <h3 data-i18n="modal.title">Ürün Sorgulama / Teklif</h3>
-    <p class="modal-product-name" id="modalProductName"></p>
-    <form id="inquiryForm" novalidate>
-      <input type="hidden" name="product_id" id="inqProductId"/>
-      <input type="hidden" name="product_name" id="inqProductName"/>
-      <div class="form-row"><div class="fg"><label data-i18n="c.name">Ad Soyad *</label><input type="text" name="customer_name" required/></div><div class="fg"><label data-i18n="c.company">Şirket</label><input type="text" name="company"/></div></div>
-      <div class="form-row"><div class="fg"><label data-i18n="c.emailL">E-posta *</label><input type="email" name="customer_email" required/></div><div class="fg"><label data-i18n="c.phoneL">Telefon</label><input type="tel" name="customer_phone"/></div></div>
-      <div class="fg"><label data-i18n="modal.qty">Talep Miktarı / Açıklama *</label><textarea name="message" rows="3" required></textarea></div>
-      <button type="submit" class="btn btn-primary btn-full"><span data-i18n="modal.send">Sorgulama Gönder</span></button>
-      <div class="form-ok hidden" id="inqOk"><svg width="16" height="16" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="#00897B"/><path d="M5 9L8 12L13 6" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="c.ok">Mesajınız iletildi.</span></div>
-    </form>
-  </div>
-</div>
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-brand">Bilim Platformu</span>
+      <div class="footer-links">
+        <a href="/about.html">Hakkında</a>
+        <a href="/submit.html">Makale Gönder</a>
+        <a href="/login.html">Giriş</a>
+      </div>
+      <span>&copy; 2024 Bilim Platformu. Tüm haklar saklıdır.</span>
+    </div>
+  </footer>
 
-<button class="back-top" id="backTop" aria-label="Yukarı">
-  <svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 13L10 7L15 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-</button>
-
-<script src="/assets/js/main.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/index.js"></script>
 </body>
 </html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profilim — Bilim Platformu</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="site-logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Bilim Platformu
+      </a>
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="/">Ana Sayfa</a></li>
+          <li><a href="/submit.html">Makale Gönder</a></li>
+          <li id="navModLink" class="hidden"><a href="/moderation.html">Moderasyon</a></li>
+          <li id="navAdminLink" class="hidden"><a href="/admin.html">Yönetim</a></li>
+        </ul>
+      </nav>
+      <div class="nav-user" id="navUser"></div>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="container">
+      <h1 id="profileTitle">Profilim</h1>
+      <p id="profileSubtitle">Hesap bilgilerinizi ve makalelerinizi yönetin.</p>
+    </div>
+  </div>
+
+  <main>
+    <div class="container">
+      <div id="alertBox" style="max-width:600px"></div>
+
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start">
+        <!-- Sol: Profil -->
+        <div>
+          <div class="card">
+            <div class="card-body text-center" style="padding:28px 20px">
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 14px" id="avatarCircle"></div>
+              <div style="font-size:1.1rem;font-weight:700;color:var(--navy)" id="profileUsername"></div>
+              <div class="text-small text-muted mt-1" id="profileEmail"></div>
+              <div class="mt-1" id="profileRoleBadge"></div>
+              <div class="text-small text-muted mt-2" id="profileJoined"></div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">Biyografi</div>
+            <div class="card-body">
+              <div id="alertBio"></div>
+              <div class="form-group">
+                <textarea class="form-control" id="bioInput" rows="4" maxlength="500" placeholder="Kendinizi kısaca tanıtın..."></textarea>
+              </div>
+              <button class="btn btn-primary btn-sm w-full" id="saveBioBtn">Kaydet</button>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button class="btn btn-danger btn-sm w-full" id="logoutBtn">Çıkış Yap</button>
+          </div>
+        </div>
+
+        <!-- Sağ: Makaleler -->
+        <div>
+          <div class="card">
+            <div class="card-header">Makalelerim</div>
+            <div class="card-body" style="padding:0">
+              <div id="myArticles"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-brand">Bilim Platformu</span>
+      <span>&copy; 2024 Bilim Platformu.</span>
+    </div>
+  </footer>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/profile.js"></script>
+</body>
+</html>

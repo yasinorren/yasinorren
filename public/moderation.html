@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moderasyon Paneli — Bilim Platformu</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .article-preview-row { padding: 20px 24px; border-bottom: 1px solid var(--gray-100); }
+    .article-preview-row:last-child { border-bottom: none; }
+    .preview-title { font-family: var(--font-serif); font-size: 1.1rem; color: var(--navy); font-weight: 700; }
+    .preview-meta  { font-size: .83rem; color: var(--gray-500); margin: 4px 0 10px; }
+    .preview-summary { font-size: .9rem; color: var(--gray-600); margin-bottom: 12px; }
+    .action-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="site-logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Bilim Platformu
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/">Ana Sayfa</a></li>
+          <li><a href="/moderation.html" class="active">Moderasyon</a></li>
+          <li id="navAdminLink" class="hidden"><a href="/admin.html">Yönetim</a></li>
+        </ul>
+      </nav>
+      <div class="nav-user" id="navUser"></div>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="container">
+      <h1>Moderasyon Paneli</h1>
+      <p>Onay bekleyen makaleleri inceleyin ve yayınlama kararı verin.</p>
+    </div>
+  </div>
+
+  <main>
+    <div class="container">
+      <!-- İstatistikler -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-card-label">Bekleyen</div><div class="stat-card-value orange" id="statPending">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Onaylanan</div><div class="stat-card-value green" id="statApproved">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Reddedilen</div><div class="stat-card-value red" id="statRejected">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Toplam Üye</div><div class="stat-card-value" id="statUsers">—</div></div>
+      </div>
+
+      <!-- Sekmeler -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="queue">Bekleyenler <span class="badge badge-pending" id="pendingBadge"></span></button>
+        <button class="tab-btn" data-tab="all">Tüm Makaleler</button>
+        <button class="tab-btn" data-tab="log">Moderasyon Günlüğü</button>
+      </div>
+
+      <!-- Bekleyenler -->
+      <div class="tab-panel active" id="tab-queue">
+        <div class="card">
+          <div id="queueContent"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Tüm Makaleler -->
+      <div class="tab-panel" id="tab-all">
+        <div class="d-flex gap-2 mb-0" style="margin-bottom:16px">
+          <select class="form-control" id="statusFilter" style="max-width:180px">
+            <option value="">Tüm Durumlar</option>
+            <option value="pending">Bekleyen</option>
+            <option value="approved">Onaylı</option>
+            <option value="rejected">Reddedilmiş</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="filterBtn">Filtrele</button>
+        </div>
+        <div class="card">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Başlık</th>
+                  <th>Yazar</th>
+                  <th>Kategori</th>
+                  <th>Durum</th>
+                  <th>Tarih</th>
+                  <th>İnceleyen</th>
+                </tr>
+              </thead>
+              <tbody id="allArticlesBody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding:24px">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Günlük -->
+      <div class="tab-panel" id="tab-log">
+        <div class="card">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Tarih</th><th>Moderatör</th><th>Makale</th><th>İşlem</th><th>Not</th></tr>
+              </thead>
+              <tbody id="logBody">
+                <tr><td colspan="5" class="text-center text-muted" style="padding:24px">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Red Modal -->
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Makaleyi Reddet</span>
+        <button class="btn btn-ghost btn-sm" id="closeRejectModal">✕</button>
+      </div>
+      <div id="rejectAlertBox"></div>
+      <div class="form-group">
+        <label class="form-label">Red Gerekçesi <span class="req">*</span></label>
+        <textarea class="form-control" id="rejectReason" rows="4" placeholder="Yazara iletilecek gerekçeyi belirtin..."></textarea>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-secondary" id="cancelRejectBtn">İptal</button>
+        <button class="btn btn-danger" id="confirmRejectBtn">Reddet</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-brand">Bilim Platformu</span>
+      <span>&copy; 2024 Bilim Platformu.</span>
+    </div>
+  </footer>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/moderation.js"></script>
+</body>
+</html>

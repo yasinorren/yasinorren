@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yönetim Paneli — Bilim Platformu</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="site-logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Bilim Platformu
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/">Ana Sayfa</a></li>
+          <li><a href="/moderation.html">Moderasyon</a></li>
+          <li><a href="/admin.html" class="active">Yönetim</a></li>
+        </ul>
+      </nav>
+      <div class="nav-user" id="navUser"></div>
+    </div>
+  </header>
+
+  <div class="page-header">
+    <div class="container">
+      <h1>Yönetim Paneli</h1>
+      <p>Platform istatistikleri, kullanıcı ve makale yönetimi.</p>
+    </div>
+  </div>
+
+  <main>
+    <div class="container">
+      <!-- İstatistikler -->
+      <h2 style="font-size:1.1rem;margin-bottom:14px">Genel İstatistikler</h2>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-card-label">Toplam Üye</div><div class="stat-card-value" id="sUsers">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Toplam Makale</div><div class="stat-card-value" id="sArticles">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Yayınlanan</div><div class="stat-card-value green" id="sApproved">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Bekleyen</div><div class="stat-card-value orange" id="sPending">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Yorumlar</div><div class="stat-card-value" id="sComments">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Toplam Görüntülenme</div><div class="stat-card-value" id="sViews">—</div></div>
+      </div>
+
+      <!-- Sekmeler -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="users">Kullanıcılar</button>
+        <button class="tab-btn" data-tab="articles">Makaleler</button>
+      </div>
+
+      <!-- Kullanıcılar -->
+      <div class="tab-panel active" id="tab-users">
+        <div id="adminAlert" style="margin-bottom:12px"></div>
+        <div class="card">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>#</th><th>Kullanıcı</th><th>E-posta</th><th>Rol</th><th>Makale</th><th>Kayıt Tarihi</th><th>İşlemler</th></tr>
+              </thead>
+              <tbody id="usersBody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding:24px">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Makaleler -->
+      <div class="tab-panel" id="tab-articles">
+        <div class="card">
+          <div class="data-table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>#</th><th>Başlık</th><th>Yazar</th><th>Durum</th><th>Görüntülenme</th><th>Tarih</th><th>İşlem</th></tr>
+              </thead>
+              <tbody id="adminArticlesBody">
+                <tr><td colspan="7" class="text-center text-muted" style="padding:24px">Yükleniyor...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Rol Değiştirme Modal -->
+  <div class="modal-overlay" id="roleModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Rol Değiştir</span>
+        <button class="btn btn-ghost btn-sm" id="closeRoleModal">✕</button>
+      </div>
+      <p class="text-small text-muted" style="margin-bottom:14px">Kullanıcı: <strong id="roleUsername"></strong></p>
+      <div class="form-group">
+        <label class="form-label">Yeni Rol</label>
+        <select class="form-control" id="newRole">
+          <option value="user">Kullanıcı</option>
+          <option value="moderator">Moderatör</option>
+          <option value="admin">Yönetici</option>
+        </select>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-secondary" id="cancelRoleBtn">İptal</button>
+        <button class="btn btn-primary" id="confirmRoleBtn">Güncelle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Silme Onay Modal -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="deleteModalTitle">Silme Onayı</span>
+        <button class="btn btn-ghost btn-sm" id="closeDeleteModal">✕</button>
+      </div>
+      <p id="deleteModalMsg" style="margin-bottom:20px"></p>
+      <div class="d-flex gap-2">
+        <button class="btn btn-secondary" id="cancelDeleteBtn">İptal</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Sil</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-brand">Bilim Platformu</span>
+      <span>&copy; 2024 Bilim Platformu.</span>
+    </div>
+  </footer>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

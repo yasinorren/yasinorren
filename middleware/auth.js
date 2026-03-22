@@ -1,15 +1,26 @@
 const jwt = require('jsonwebtoken');
+const SECRET = process.env.JWT_SECRET || 'bilim-platformu-secret-2024';
 
-module.exports = function authMiddleware(req, res, next) {
+function authenticate(req, res, next) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token gerekli' });
+    return res.status(401).json({ error: 'Kimlik doğrulama gerekli.' });
   }
   try {
-    const token = auth.split(' ')[1];
-    req.user = jwt.verify(token, process.env.JWT_SECRET || 'innomed_secret');
+    req.user = jwt.verify(auth.slice(7), SECRET);
     next();
   } catch {
-    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
+    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş oturum.' });
   }
-};
+}
+
+function requireRole(...roles) {
+  return [authenticate, (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Bu işlem için yetkiniz bulunmuyor.' });
+    }
+    next();
+  }];
+}
+
+module.exports = { authenticate, requireRole };

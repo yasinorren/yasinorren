@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Makale — Bilim Platformu</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--gray-600); font-size: .9rem; margin-bottom: 20px; }
+    .back-link:hover { color: var(--blue); text-decoration: none; }
+    .author-box { background: var(--gray-50); border: 1px solid var(--gray-100); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; }
+    .author-box-name { font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
+    .author-box-bio  { font-size: .85rem; color: var(--gray-600); }
+    .toc { font-size: .88rem; }
+    .toc ul { list-style: none; padding: 0; }
+    .toc li { padding: 4px 0; border-bottom: 1px solid var(--gray-100); }
+    .toc a  { color: var(--gray-700); }
+    .toc a:hover { color: var(--blue); }
+    .share-btn { display: flex; align-items: center; gap: 6px; width: 100%; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="site-logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Bilim Platformu
+      </a>
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="/">Ana Sayfa</a></li>
+          <li id="navModLink" class="hidden"><a href="/moderation.html">Moderasyon</a></li>
+          <li id="navAdminLink" class="hidden"><a href="/admin.html">Yönetim</a></li>
+        </ul>
+      </nav>
+      <div class="nav-user" id="navUser">
+        <a href="/login.html" class="btn btn-secondary btn-sm">Giriş Yap</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="/" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+        Makalelere Dön
+      </a>
+
+      <div id="articleContainer">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Yorum textarea için alertbox -->
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Makaleyi Reddet</span>
+        <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Red Gerekçesi <span class="req">*</span></label>
+        <textarea class="form-control" id="rejectReason" rows="4" placeholder="Neden reddedildi?"></textarea>
+      </div>
+      <div class="d-flex gap-2 justify-between">
+        <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+        <button class="btn btn-danger" onclick="confirmReject()">Reddet</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-brand">Bilim Platformu</span>
+      <span>&copy; 2024 Bilim Platformu.</span>
+    </div>
+  </footer>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/article.js"></script>
+</body>
+</html>
