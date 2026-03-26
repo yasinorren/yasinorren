@@ -67,17 +67,19 @@ async function loadUsers() {
 }
 
 async function loadAdminArticles() {
-  const articles = await GET('/admin/users').catch(() => null);
-  // Reuse moderation all endpoint with admin token
   const data = await GET('/moderation/all').catch(() => ({ articles: [] }));
   const tbody = document.getElementById('adminArticlesBody');
+  if (!data.articles.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Makale bulunamadı.</td></tr>';
+    return;
+  }
   tbody.innerHTML = data.articles.map(a => `
     <tr>
       <td>${a.id}</td>
-      <td>${escHtml(a.title)}</td>
+      <td><strong>${escHtml(a.title)}</strong></td>
       <td>${escHtml(a.author)}</td>
       <td>${statusBadge(a.status)}</td>
-      <td>—</td>
+      <td>${a.views ?? 0}</td>
       <td>${fmtDateShort(a.created_at)}</td>
       <td>
         <button class="btn btn-danger btn-sm" onclick="openDeleteModal('article', ${a.id}, '${escHtml(a.title).slice(0,40)}')">Sil</button>

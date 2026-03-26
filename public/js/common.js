@@ -89,8 +89,8 @@ function roleBadge(role) {
 
 // ── Navigation setup ──────────────────────────────────────────
 function setupNav() {
-  const navUser    = document.getElementById('navUser');
-  const navModLink = document.getElementById('navModLink');
+  const navUser      = document.getElementById('navUser');
+  const navModLink   = document.getElementById('navModLink');
   const navAdminLink = document.getElementById('navAdminLink');
 
   const user = Auth.getUser();
@@ -106,10 +106,17 @@ function setupNav() {
       <a href="/register.html" class="btn btn-primary btn-sm">Kayıt Ol</a>
     `;
   } else {
+    const roleLabel = { user: 'Kullanıcı', moderator: 'Moderatör', admin: 'Yönetici' };
     navUser.innerHTML = `
       <span class="nav-username">${escHtml(user?.username || '')}</span>
+      <span class="badge badge-${escHtml(user?.role || 'user')}" style="font-size:.7rem">${roleLabel[user?.role] || ''}</span>
       <a href="/profile.html" class="btn btn-secondary btn-sm">Profilim</a>
+      <button class="btn btn-ghost btn-sm" id="navLogoutBtn" style="color:rgba(255,255,255,.6);border-color:rgba(255,255,255,.15)">Çıkış</button>
     `;
+    document.getElementById('navLogoutBtn').addEventListener('click', () => {
+      Auth.clear();
+      window.location.href = '/';
+    });
   }
 
   // Hamburger menu
