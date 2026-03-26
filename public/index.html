@@ -15,10 +15,10 @@
   <header class="site-header">
     <div class="container header-inner">
       <a href="/" class="site-logo">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
         </svg>
-        Bilim Platformu
+        Bilim<span class="logo-dot">.</span>tr
       </a>
       <button class="hamburger" id="hamburger" aria-label="Menü">
         <span></span><span></span><span></span>
@@ -27,6 +27,7 @@
         <ul class="nav-links" id="navLinks">
           <li><a href="/" class="active">Ana Sayfa</a></li>
           <li><a href="/submit.html">Makale Gönder</a></li>
+          <li><a href="/about.html">Hakkında</a></li>
           <li id="navModLink" class="hidden"><a href="/moderation.html">Moderasyon</a></li>
           <li id="navAdminLink" class="hidden"><a href="/admin.html">Yönetim</a></li>
         </ul>
@@ -35,6 +36,7 @@
         <a href="/login.html" class="btn btn-secondary btn-sm">Giriş Yap</a>
         <a href="/register.html" class="btn btn-primary btn-sm">Kayıt Ol</a>
       </div>
+      <div id="darkToggleWrap"></div>
     </div>
   </header>
 
@@ -42,42 +44,81 @@
   <section class="hero">
     <div class="container">
       <h1>Bilim Dünyasından<br>Son Gelişmeler</h1>
-      <p>Hakemli kaynakçalar ile desteklenen bilimsel makale ve haberler. Okuyun, paylaşın, tartışın.</p>
-      <form class="search-bar" id="searchForm">
-        <input type="text" id="searchInput" placeholder="Makale veya konu arayın..." autocomplete="off" maxlength="120">
-        <button type="submit">Ara</button>
-      </form>
+      <p>Hakemli kaynakçalar ile desteklenen bilimsel makaleler. Okuyun, paylaşın, tartışın.</p>
+      <div class="search-wrap">
+        <form class="search-bar" id="searchForm" autocomplete="off">
+          <input type="text" id="searchInput" placeholder="Makale, konu veya yazar arayın..." maxlength="120">
+          <button type="submit">Ara</button>
+        </form>
+        <div class="search-dropdown" id="searchDropdown" style="display:none"></div>
+      </div>
     </div>
   </section>
 
   <main>
     <div class="container">
-      <!-- Kategori filtreleri -->
-      <div class="category-strip" id="categoryStrip">
-        <button class="cat-pill active" data-slug="">Tümü</button>
-        <!-- JS tarafından doldurulacak -->
+
+      <!-- İstatistik Bandı -->
+      <div class="stats-banner" id="statsBanner">
+        <div class="stats-banner-item"><div class="stats-banner-num" id="sbArticles">—</div><div class="stats-banner-label">Makale</div></div>
+        <div class="stats-banner-item"><div class="stats-banner-num" id="sbUsers">—</div><div class="stats-banner-label">Üye</div></div>
+        <div class="stats-banner-item"><div class="stats-banner-num" id="sbViews">—</div><div class="stats-banner-label">Görüntülenme</div></div>
+        <div class="stats-banner-item"><div class="stats-banner-num" id="sbComments">—</div><div class="stats-banner-label">Yorum</div></div>
       </div>
 
-      <!-- Makale listesi -->
-      <div id="articlesContainer">
-        <div class="spinner"></div>
-      </div>
+      <!-- Ana içerik + Sidebar -->
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:32px;align-items:start" id="mainGrid">
+        <!-- Sol: Makaleler -->
+        <div>
+          <!-- Kategori filtreleri -->
+          <div class="category-strip" id="categoryStrip">
+            <button class="cat-pill active" data-slug="">Tümü</button>
+          </div>
 
-      <!-- Pagination -->
-      <div class="pagination" id="pagination"></div>
+          <!-- Makale listesi -->
+          <div id="articlesContainer">
+            <div class="spinner"></div>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination" id="pagination"></div>
+        </div>
+
+        <!-- Sağ: Sidebar -->
+        <aside id="homeSidebar">
+          <div class="card">
+            <div class="card-header">🔥 Trend Makaleler</div>
+            <div class="card-body" style="padding:8px 0" id="trendingList">
+              <div class="spinner" style="margin:20px auto"></div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">✍️ Makale Gönder</div>
+            <div class="card-body">
+              <p style="font-size:.875rem;color:var(--gray-400);margin-bottom:14px">Bilimsel içeriğinizi binlerce okuyucuyla paylaşın.</p>
+              <a href="/submit.html" class="btn btn-primary w-full">Makale Gönder</a>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   </main>
 
   <!-- FOOTER -->
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span class="footer-brand">Bilim Platformu</span>
+      <div>
+        <span class="footer-brand">Bilim<span style="color:#60a5fa">.</span>tr</span>
+        <div style="font-size:.78rem;margin-top:6px;color:rgba(255,255,255,.4)">Türkçe bilim platformu</div>
+      </div>
       <div class="footer-links">
         <a href="/about.html">Hakkında</a>
         <a href="/submit.html">Makale Gönder</a>
         <a href="/login.html">Giriş</a>
+        <a href="/register.html">Kayıt</a>
       </div>
-      <span>&copy; 2024 Bilim Platformu. Tüm haklar saklıdır.</span>
+      <span>&copy; 2025 Bilim.tr — Tüm haklar saklıdır.</span>
     </div>
   </footer>
 

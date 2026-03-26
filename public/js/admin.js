@@ -1,6 +1,6 @@
 /* Yönetim Paneli */
 let roleTargetId  = null;
-let deleteTarget  = null; // { type: 'user'|'article', id }
+let deleteTarget  = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!Auth.isLoggedIn() || !Auth.isAdmin()) {
@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadStats();
   await loadUsers();
 
-  // Tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -22,12 +21,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Role modal
   document.getElementById('closeRoleModal').addEventListener('click', closeRoleModal);
   document.getElementById('cancelRoleBtn').addEventListener('click', closeRoleModal);
   document.getElementById('confirmRoleBtn').addEventListener('click', doRoleChange);
-
-  // Delete modal
   document.getElementById('closeDeleteModal').addEventListener('click', closeDeleteModal);
   document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
   document.getElementById('confirmDeleteBtn').addEventListener('click', doDelete);
@@ -41,26 +37,44 @@ async function loadStats() {
   document.getElementById('sPending').textContent  = s.pending       ?? '—';
   document.getElementById('sComments').textContent = s.totalComments ?? '—';
   document.getElementById('sViews').textContent    = s.totalViews    ?? '—';
+
+  // Grafik çubukları
+  const total = s.totalArticles || 1;
+  renderBar('barApproved', (s.approved / total) * 100, 'green',  `Onaylı: ${s.approved}`);
+  renderBar('barPending',  (s.pending  / total) * 100, 'orange', `Bekleyen: ${s.pending}`);
+  renderBar('barRejected', ((s.totalArticles - s.approved - s.pending) / total) * 100, 'red', `Reddedilen: ${s.totalArticles - s.approved - s.pending}`);
+}
+
+function renderBar(id, pct, color, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.querySelector('.chart-bar-label').innerHTML = `<span>${label}</span><span>${Math.round(pct)}%</span>`;
+  el.querySelector('.chart-bar-fill').style.width = Math.max(0, pct) + '%';
+  el.querySelector('.chart-bar-fill').className = `chart-bar-fill ${color}`;
 }
 
 async function loadUsers() {
   const users = await GET('/admin/users').catch(() => []);
   const tbody = document.getElementById('usersBody');
   const me = Auth.getUser();
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Kullanıcı bulunamadı.</td></tr>';
+    return;
+  }
   tbody.innerHTML = users.map(u => `
     <tr>
-      <td>${u.id}</td>
+      <td style="color:var(--gray-400);font-size:.8rem">#${u.id}</td>
       <td><strong>${escHtml(u.username)}</strong></td>
-      <td>${escHtml(u.email)}</td>
+      <td style="color:var(--gray-400)">${escHtml(u.email)}</td>
       <td>${roleBadge(u.role)}</td>
       <td>${u.article_count}</td>
       <td>${fmtDateShort(u.created_at)}</td>
       <td>
         <div class="d-flex gap-2">
           ${u.id !== me.id ? `
-            <button class="btn btn-secondary btn-sm" onclick="openRoleModal(${u.id}, '${escHtml(u.username)}', '${u.role}')">Rol</button>
+            <button class="btn btn-secondary btn-sm" onclick="openRoleModal(${u.id}, '${escHtml(u.username)}', '${u.role}')">Rol Değiştir</button>
             <button class="btn btn-danger btn-sm" onclick="openDeleteModal('user', ${u.id}, '${escHtml(u.username)}')">Sil</button>
-          ` : '<span class="text-small text-muted">(siz)</span>'}
+          ` : '<span class="badge badge-admin">Siz</span>'}
         </div>
       </td>
     </tr>`).join('');
@@ -75,19 +89,21 @@ async function loadAdminArticles() {
   }
   tbody.innerHTML = data.articles.map(a => `
     <tr>
-      <td>${a.id}</td>
+      <td style="color:var(--gray-400);font-size:.8rem">#${a.id}</td>
       <td><strong>${escHtml(a.title)}</strong></td>
       <td>${escHtml(a.author)}</td>
       <td>${statusBadge(a.status)}</td>
       <td>${a.views ?? 0}</td>
       <td>${fmtDateShort(a.created_at)}</td>
       <td>
-        <button class="btn btn-danger btn-sm" onclick="openDeleteModal('article', ${a.id}, '${escHtml(a.title).slice(0,40)}')">Sil</button>
+        <div class="d-flex gap-2">
+          ${a.status === 'approved' ? `<a href="/article.html?id=${a.id}" class="btn btn-secondary btn-sm" target="_blank">Görüntüle</a>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="openDeleteModal('article', ${a.id}, '${escHtml(a.title).replace(/'/g,"\\'")}')">Sil</button>
+        </div>
       </td>
     </tr>`).join('');
 }
 
-// Role Modal
 function openRoleModal(id, username, currentRole) {
   roleTargetId = id;
   document.getElementById('roleUsername').textContent = username;
@@ -104,13 +120,12 @@ async function doRoleChange() {
     await PUT('/admin/users/' + roleTargetId + '/role', { role });
     closeRoleModal();
     await loadUsers();
-    showAlert('adminAlert', 'success', 'Rol güncellendi.');
+    showToast('Rol güncellendi.', 'success');
   } catch (err) {
-    showAlert('adminAlert', 'error', err.message);
+    showToast(err.message, 'error');
   }
 }
 
-// Delete Modal
 function openDeleteModal(type, id, name) {
   deleteTarget = { type, id };
   document.getElementById('deleteModalTitle').textContent = type === 'user' ? 'Kullanıcıyı Sil' : 'Makaleyi Sil';
@@ -126,13 +141,15 @@ async function doDelete() {
   const path = deleteTarget.type === 'user'
     ? '/admin/users/' + deleteTarget.id
     : '/admin/articles/' + deleteTarget.id;
+  const savedTarget = { ...deleteTarget };
+  closeDeleteModal();
   try {
     await DEL(path);
-    closeDeleteModal();
     await loadStats();
-    if (deleteTarget?.type === 'user') await loadUsers();
+    if (savedTarget.type === 'user') await loadUsers();
+    else await loadAdminArticles();
+    showToast('Başarıyla silindi.', 'success');
   } catch (err) {
-    showAlert('adminAlert', 'error', err.message);
-    closeDeleteModal();
+    showToast(err.message, 'error');
   }
 }

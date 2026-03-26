@@ -123,7 +123,8 @@ async function approveArticle(id) {
     await POST('/moderation/' + id + '/approve', {});
     await loadStats();
     await loadQueue();
-  } catch (err) { alert(err.message); }
+    showToast('Makale onaylandı ve yayınlandı!', 'success');
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 function openRejectModal(id) {

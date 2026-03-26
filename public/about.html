@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hakkında — Bilim.tr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .about-hero { background: linear-gradient(135deg, var(--navy) 0%, #1e3a8a 60%, #0e7490 100%); padding: 72px 0 64px; color: #fff; text-align: center; position: relative; overflow: hidden; }
+    .about-hero::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 70% 30%, rgba(96,165,250,.15) 0%, transparent 50%); }
+    .about-hero h1 { color: #fff; font-size: 2.6rem; margin-bottom: 16px; }
+    .about-hero p  { color: rgba(255,255,255,.75); font-size: 1.1rem; max-width: 560px; margin: 0 auto; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin: 40px 0; }
+    .feature-card { padding: 28px; border-radius: var(--radius-lg); border: 1px solid var(--gray-100); background: var(--white); box-shadow: var(--shadow-sm); }
+    .feature-icon { width: 48px; height: 48px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 1.4rem; }
+    .feature-card h3 { font-size: 1.05rem; margin-bottom: 8px; color: var(--navy); }
+    .feature-card p  { font-size: .875rem; color: var(--gray-400); margin: 0; line-height: 1.7; }
+    .team-note { background: linear-gradient(135deg, var(--blue-light), var(--teal-light)); border: 1px solid var(--blue-mid); border-radius: var(--radius-lg); padding: 32px; text-align: center; margin: 40px 0; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 20px; }
+    .cat-item { padding: 10px 14px; border-radius: var(--radius); background: var(--gray-50); border: 1px solid var(--gray-100); font-size: .875rem; font-weight: 600; color: var(--gray-600); text-align: center; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="/" class="site-logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+        </svg>
+        Bilim<span class="logo-dot">.</span>tr
+      </a>
+      <nav>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="/">Ana Sayfa</a></li>
+          <li><a href="/submit.html">Makale Gönder</a></li>
+          <li><a href="/about.html" class="active">Hakkında</a></li>
+          <li id="navModLink" class="hidden"><a href="/moderation.html">Moderasyon</a></li>
+          <li id="navAdminLink" class="hidden"><a href="/admin.html">Yönetim</a></li>
+        </ul>
+      </nav>
+      <div class="nav-user" id="navUser"></div>
+      <div id="darkToggleWrap"></div>
+    </div>
+  </header>
+
+  <section class="about-hero">
+    <div class="container" style="position:relative">
+      <h1>Bilim.tr Hakkında</h1>
+      <p>Türkçe bilim içeriğini erişilebilir kılmak için kurulmuş, hakemli kaynakçalara dayalı açık bir platform.</p>
+    </div>
+  </section>
+
+  <main>
+    <div class="container" style="max-width:900px">
+
+      <!-- Misyon -->
+      <div style="text-align:center;padding:48px 0 32px">
+        <span style="display:inline-block;background:var(--blue-light);color:var(--blue);font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 14px;border-radius:var(--radius-full);margin-bottom:16px">Misyonumuz</span>
+        <h2 style="font-size:1.8rem;margin-bottom:16px">Bilimi Herkes İçin Erişilebilir Kılmak</h2>
+        <p style="font-size:1.05rem;color:var(--gray-400);max-width:600px;margin:0 auto;line-height:1.8">
+          Bilim.tr, araştırmacıların, öğrencilerin ve bilim meraklılarının Türkçe bilimsel içerik üretmesini ve paylaşmasını sağlar.
+          Her makale, moderatörlerimiz tarafından incelenerek yayına alınır.
+        </p>
+      </div>
+
+      <!-- Özellikler -->
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#eff6ff">🔬</div>
+          <h3>Hakemli İnceleme</h3>
+          <p>Her makale yayınlanmadan önce moderatörlerimiz tarafından incelenir ve kaynakçalar kontrol edilir.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#f0fdf4">📚</div>
+          <h3>Bilimsel Kaynakçalar</h3>
+          <p>APA formatında düzenlenmiş kaynakçalar ile makalelerin güvenilirliği desteklenir.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#fdf4ff">💬</div>
+          <h3>Topluluk Tartışması</h3>
+          <p>Her makale altında yorum bölümü ile okuyucular görüşlerini paylaşabilir.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#fffbeb">🏷️</div>
+          <h3>10 Bilim Dalı</h3>
+          <p>Fizikten psikolojiye, astronomiden tıba kadar geniş bir yelpazede kategoriler.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#fff1f2">🌙</div>
+          <h3>Karanlık Mod</h3>
+          <p>Gece okuma için göz dostu karanlık mod desteği.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#ecfeff">📱</div>
+          <h3>Mobil Uyumlu</h3>
+          <p>Her ekran boyutuna uyum sağlayan duyarlı tasarım.</p>
+        </div>
+      </div>
+
+      <!-- Kategoriler -->
+      <div class="card" style="margin-bottom:40px">
+        <div class="card-header">Bilim Kategorileri</div>
+        <div class="card-body">
+          <div class="cat-grid">
+            <div class="cat-item">⚡ Fizik</div>
+            <div class="cat-item">⚗️ Kimya</div>
+            <div class="cat-item">🧬 Biyoloji</div>
+            <div class="cat-item">🏥 Tıp & Sağlık</div>
+            <div class="cat-item">🌌 Astronomi</div>
+            <div class="cat-item">📐 Matematik</div>
+            <div class="cat-item">🌿 Çevre Bilimleri</div>
+            <div class="cat-item">💻 Teknoloji</div>
+            <div class="cat-item">🧠 Psikoloji</div>
+            <div class="cat-item">🔭 Genel Bilim</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nasıl Katılınır -->
+      <div class="team-note">
+        <h2 style="font-size:1.5rem;margin-bottom:12px">Siz de Katkıda Bulunun</h2>
+        <p style="color:var(--gray-500);margin-bottom:20px;font-size:.95rem">Bilimsel makalenizi yazın, platformumuza gönderin. Moderatörlerimiz 24–48 saat içinde inceleyerek yanıt verir.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a href="/register.html" class="btn btn-primary">Hemen Kayıt Ol</a>
+          <a href="/submit.html" class="btn btn-secondary">Makale Gönder</a>
+        </div>
+      </div>
+
+      <!-- Yayın İlkeleri -->
+      <div class="card" style="margin-bottom:48px">
+        <div class="card-header">Yayın İlkeleri</div>
+        <div class="card-body">
+          <ul style="line-height:2;color:var(--gray-600);font-size:.9375rem">
+            <li>Makaleler özgün ve daha önce yayımlanmamış olmalıdır.</li>
+            <li>Her iddia için güvenilir bilimsel kaynak gösterilmelidir.</li>
+            <li>Yanıltıcı, yanlış veya pseudobilimsel içerikler kabul edilmez.</li>
+            <li>Etik kurallara aykırı içerikler yayınlanmaz.</li>
+            <li>Türkçe dil kurallarına uygun yazım zorunludur.</li>
+            <li>Telif hakkı ihlali içeren materyaller kullanılamaz.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <span class="footer-brand">Bilim<span style="color:#60a5fa">.</span>tr</span>
+        <div style="font-size:.78rem;margin-top:6px;color:rgba(255,255,255,.4)">Türkçe bilim platformu</div>
+      </div>
+      <div class="footer-links">
+        <a href="/about.html">Hakkında</a>
+        <a href="/submit.html">Makale Gönder</a>
+        <a href="/login.html">Giriş</a>
+      </div>
+      <span>&copy; 2025 Bilim.tr</span>
+    </div>
+  </footer>
+
+  <script src="/js/common.js"></script>
+</body>
+</html>

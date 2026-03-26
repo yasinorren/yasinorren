@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profilim — Bilim Platformu</title>
+  <title>Profilim — Bilim.tr</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
         </svg>
-        Bilim Platformu
+        Bilim<span class="logo-dot">.</span>tr
       </a>
       <nav>
         <ul class="nav-links" id="navLinks">
@@ -27,41 +27,58 @@
         </ul>
       </nav>
       <div class="nav-user" id="navUser"></div>
+      <div id="darkToggleWrap"></div>
     </div>
   </header>
 
-  <div class="page-header">
-    <div class="container">
-      <h1 id="profileTitle">Profilim</h1>
-      <p id="profileSubtitle">Hesap bilgilerinizi ve makalelerinizi yönetin.</p>
-    </div>
-  </div>
-
   <main>
-    <div class="container">
-      <div id="alertBox" style="max-width:600px"></div>
+    <div class="container" style="max-width:1000px">
+      <div id="alertBox" style="margin-bottom:16px"></div>
 
-      <div style="display:grid;grid-template-columns:280px 1fr;gap:28px;align-items:start">
-        <!-- Sol: Profil -->
+      <div class="profile-grid">
+        <!-- Sol: Profil Kartı -->
         <div>
           <div class="card">
-            <div class="card-body text-center" style="padding:28px 20px">
-              <div style="width:72px;height:72px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 14px" id="avatarCircle"></div>
-              <div style="font-size:1.1rem;font-weight:700;color:var(--navy)" id="profileUsername"></div>
-              <div class="text-small text-muted mt-1" id="profileEmail"></div>
-              <div class="mt-1" id="profileRoleBadge"></div>
-              <div class="text-small text-muted mt-2" id="profileJoined"></div>
+            <div class="card-body text-center" style="padding:32px 24px">
+              <div id="avatarCircle" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--navy),#1e40af);color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;margin:0 auto 16px;box-shadow:0 4px 12px rgba(37,99,235,.3)"></div>
+              <div style="font-size:1.25rem;font-weight:700;color:var(--navy)" id="profileUsername"></div>
+              <div style="font-size:.875rem;color:var(--gray-400);margin-top:4px" id="profileEmail"></div>
+              <div style="margin:10px 0" id="profileRoleBadge"></div>
+              <div style="font-size:.8rem;color:var(--gray-400)" id="profileJoined"></div>
             </div>
           </div>
 
+          <!-- İstatistikler -->
+          <div class="card mt-3">
+            <div class="card-header">İstatistikler</div>
+            <div class="card-body" style="padding:16px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="text-align:center;padding:14px;background:var(--blue-light);border-radius:var(--radius)">
+                  <div style="font-size:1.5rem;font-weight:800;color:var(--blue)" id="statArticles">—</div>
+                  <div style="font-size:.72rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-top:3px">Makale</div>
+                </div>
+                <div style="text-align:center;padding:14px;background:var(--green-light);border-radius:var(--radius)">
+                  <div style="font-size:1.5rem;font-weight:800;color:var(--green)" id="statApproved">—</div>
+                  <div style="font-size:.72rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-top:3px">Onaylı</div>
+                </div>
+                <div style="text-align:center;padding:14px;background:var(--off-white);border-radius:var(--radius);grid-column:span 2">
+                  <div style="font-size:1.5rem;font-weight:800;color:var(--navy)" id="statViews">—</div>
+                  <div style="font-size:.72rem;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.05em;margin-top:3px">Toplam Görüntülenme</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Biyografi -->
           <div class="card mt-3">
             <div class="card-header">Biyografi</div>
             <div class="card-body">
               <div id="alertBio"></div>
-              <div class="form-group">
+              <div class="form-group" style="margin-bottom:12px">
                 <textarea class="form-control" id="bioInput" rows="4" maxlength="500" placeholder="Kendinizi kısaca tanıtın..."></textarea>
+                <div style="text-align:right;font-size:.75rem;color:var(--gray-400);margin-top:4px"><span id="bioCharCount">0</span>/500</div>
               </div>
-              <button class="btn btn-primary btn-sm w-full" id="saveBioBtn">Kaydet</button>
+              <button class="btn btn-primary btn-sm w-full" id="saveBioBtn">Biyografiyi Kaydet</button>
             </div>
           </div>
 
@@ -70,13 +87,19 @@
           </div>
         </div>
 
-        <!-- Sağ: Makaleler -->
+        <!-- Sağ: Sekmeler -->
         <div>
-          <div class="card">
-            <div class="card-header">Makalelerim</div>
-            <div class="card-body" style="padding:0">
-              <div id="myArticles"><div class="spinner"></div></div>
-            </div>
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="articles">Makalelerim</button>
+            <button class="tab-btn" data-tab="bookmarks">Kaydedilenler</button>
+          </div>
+
+          <div class="tab-panel active" id="tab-articles">
+            <div id="myArticles"><div class="spinner"></div></div>
+          </div>
+
+          <div class="tab-panel" id="tab-bookmarks">
+            <div id="myBookmarks"><div class="spinner"></div></div>
           </div>
         </div>
       </div>
@@ -85,8 +108,8 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span class="footer-brand">Bilim Platformu</span>
-      <span>&copy; 2024 Bilim Platformu.</span>
+      <span class="footer-brand">Bilim<span style="color:#60a5fa">.</span>tr</span>
+      <span>&copy; 2025 Bilim.tr</span>
     </div>
   </footer>
 

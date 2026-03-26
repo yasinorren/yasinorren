@@ -66,6 +66,30 @@ function clearAlert(boxId) {
   if (box) box.innerHTML = '';
 }
 
+// ── Toast Notifications ───────────────────────────────────────
+function showToast(msg, type = 'success', duration = 3500) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    document.body.appendChild(container);
+  }
+  const icons = {
+    success: '✓',
+    error:   '✕',
+    info:    'ℹ',
+    warning: '⚠',
+  };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span style="font-weight:700;font-size:1rem">${icons[type] || '✓'}</span><span>${escHtml(msg)}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 350);
+  }, duration);
+}
+
 // ── XSS escape ───────────────────────────────────────────────
 function escHtml(str) {
   if (str == null) return '';
@@ -87,7 +111,55 @@ function roleBadge(role) {
   return `<span class="badge badge-${role}">${map[role] || role}</span>`;
 }
 
-// ── Navigation setup ──────────────────────────────────────────
+// ── Reading time ──────────────────────────────────────────────
+function calcReadingTime(text) {
+  const words = text.replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length;
+  const mins  = Math.max(1, Math.round(words / 200));
+  return mins;
+}
+
+// ── Number format ─────────────────────────────────────────────
+function fmtNum(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n / 1000).toFixed(1) + 'K';
+  return String(n);
+}
+
+// ── Dark Mode ─────────────────────────────────────────────────
+const DarkMode = {
+  init() {
+    const saved = localStorage.getItem('bp_theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  },
+  toggle() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('bp_theme', 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('bp_theme', 'dark');
+    }
+    this.updateBtn();
+  },
+  isDark() {
+    return document.documentElement.getAttribute('data-theme') === 'dark';
+  },
+  updateBtn() {
+    const btn = document.getElementById('darkToggle');
+    if (!btn) return;
+    btn.innerHTML = this.isDark()
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg> Aydınlık'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Karanlık';
+  }
+};
+
+DarkMode.init();
+
+// ── Navigation setup ──────────────────────────────────────────────
 function setupNav() {
   const navUser      = document.getElementById('navUser');
   const navModLink   = document.getElementById('navModLink');
@@ -97,6 +169,17 @@ function setupNav() {
 
   if (navModLink   && Auth.isModerator()) navModLink.classList.remove('hidden');
   if (navAdminLink && Auth.isAdmin())     navAdminLink.classList.remove('hidden');
+
+  // Dark mode toggle
+  const darkToggleWrap = document.getElementById('darkToggleWrap');
+  if (darkToggleWrap) {
+    const btn = document.createElement('button');
+    btn.className = 'dark-toggle';
+    btn.id = 'darkToggle';
+    btn.addEventListener('click', () => DarkMode.toggle());
+    darkToggleWrap.appendChild(btn);
+    DarkMode.updateBtn();
+  }
 
   if (!navUser) return;
 
@@ -115,7 +198,8 @@ function setupNav() {
     `;
     document.getElementById('navLogoutBtn').addEventListener('click', () => {
       Auth.clear();
-      window.location.href = '/';
+      showToast('Çıkış yapıldı.', 'info', 1500);
+      setTimeout(() => window.location.href = '/', 1000);
     });
   }
 

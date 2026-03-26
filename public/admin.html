@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yönetim Paneli — Bilim Platformu</title>
+  <title>Yönetim Paneli — Bilim.tr</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
@@ -16,7 +16,7 @@
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9.663 17h4.673M12 3v1m6.364 1.636-.707.707M21 12h-1M4 12H3m3.343-5.657-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
         </svg>
-        Bilim Platformu
+        Bilim<span class="logo-dot">.</span>tr
       </a>
       <nav>
         <ul class="nav-links">
@@ -26,27 +26,50 @@
         </ul>
       </nav>
       <div class="nav-user" id="navUser"></div>
+      <div id="darkToggleWrap"></div>
     </div>
   </header>
 
   <div class="page-header">
-    <div class="container">
-      <h1>Yönetim Paneli</h1>
-      <p>Platform istatistikleri, kullanıcı ve makale yönetimi.</p>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1>Yönetim Paneli</h1>
+        <p>Platform istatistikleri, kullanıcı ve makale yönetimi.</p>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="location.reload()">↺ Yenile</button>
     </div>
   </div>
 
   <main>
     <div class="container">
       <!-- İstatistikler -->
-      <h2 style="font-size:1.1rem;margin-bottom:14px">Genel İstatistikler</h2>
+      <h2 class="section-title">Genel İstatistikler</h2>
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-card-label">Toplam Üye</div><div class="stat-card-value" id="sUsers">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Toplam Üye</div><div class="stat-card-value blue" id="sUsers">—</div></div>
         <div class="stat-card"><div class="stat-card-label">Toplam Makale</div><div class="stat-card-value" id="sArticles">—</div></div>
         <div class="stat-card"><div class="stat-card-label">Yayınlanan</div><div class="stat-card-value green" id="sApproved">—</div></div>
         <div class="stat-card"><div class="stat-card-label">Bekleyen</div><div class="stat-card-value orange" id="sPending">—</div></div>
         <div class="stat-card"><div class="stat-card-label">Yorumlar</div><div class="stat-card-value" id="sComments">—</div></div>
-        <div class="stat-card"><div class="stat-card-label">Toplam Görüntülenme</div><div class="stat-card-value" id="sViews">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Görüntülenme</div><div class="stat-card-value" id="sViews">—</div></div>
+      </div>
+
+      <!-- Makale Dağılımı Grafiği -->
+      <div class="card" style="margin-bottom:28px">
+        <div class="card-header">Makale Durum Dağılımı</div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+          <div class="chart-bar-wrap" id="barApproved">
+            <div class="chart-bar-label"><span>Onaylı</span><span>0%</span></div>
+            <div class="chart-bar-track"><div class="chart-bar-fill green" style="width:0%"></div></div>
+          </div>
+          <div class="chart-bar-wrap" id="barPending">
+            <div class="chart-bar-label"><span>Bekleyen</span><span>0%</span></div>
+            <div class="chart-bar-track"><div class="chart-bar-fill orange" style="width:0%"></div></div>
+          </div>
+          <div class="chart-bar-wrap" id="barRejected">
+            <div class="chart-bar-label"><span>Reddedilen</span><span>0%</span></div>
+            <div class="chart-bar-track"><div class="chart-bar-fill red" style="width:0%"></div></div>
+          </div>
+        </div>
       </div>
 
       <!-- Sekmeler -->
@@ -57,12 +80,11 @@
 
       <!-- Kullanıcılar -->
       <div class="tab-panel active" id="tab-users">
-        <div id="adminAlert" style="margin-bottom:12px"></div>
         <div class="card">
           <div class="data-table-wrap">
             <table class="data-table">
               <thead>
-                <tr><th>#</th><th>Kullanıcı</th><th>E-posta</th><th>Rol</th><th>Makale</th><th>Kayıt Tarihi</th><th>İşlemler</th></tr>
+                <tr><th>#</th><th>Kullanıcı</th><th>E-posta</th><th>Rol</th><th>Makale</th><th>Kayıt</th><th>İşlemler</th></tr>
               </thead>
               <tbody id="usersBody">
                 <tr><td colspan="7" class="text-center text-muted" style="padding:24px">Yükleniyor...</td></tr>
@@ -97,7 +119,7 @@
         <span class="modal-title">Rol Değiştir</span>
         <button class="btn btn-ghost btn-sm" id="closeRoleModal">✕</button>
       </div>
-      <p class="text-small text-muted" style="margin-bottom:14px">Kullanıcı: <strong id="roleUsername"></strong></p>
+      <p class="text-small text-muted" style="margin-bottom:16px">Kullanıcı: <strong id="roleUsername"></strong></p>
       <div class="form-group">
         <label class="form-label">Yeni Rol</label>
         <select class="form-control" id="newRole">
@@ -120,18 +142,18 @@
         <span class="modal-title" id="deleteModalTitle">Silme Onayı</span>
         <button class="btn btn-ghost btn-sm" id="closeDeleteModal">✕</button>
       </div>
-      <p id="deleteModalMsg" style="margin-bottom:20px"></p>
+      <p id="deleteModalMsg" style="margin-bottom:24px;color:var(--gray-600)"></p>
       <div class="d-flex gap-2">
         <button class="btn btn-secondary" id="cancelDeleteBtn">İptal</button>
-        <button class="btn btn-danger" id="confirmDeleteBtn">Sil</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Kalıcı Olarak Sil</button>
       </div>
     </div>
   </div>
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span class="footer-brand">Bilim Platformu</span>
-      <span>&copy; 2024 Bilim Platformu.</span>
+      <span class="footer-brand">Bilim<span style="color:#60a5fa">.</span>tr</span>
+      <span>&copy; 2025 Bilim.tr</span>
     </div>
   </footer>
 
