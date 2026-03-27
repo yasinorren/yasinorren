@@ -83,10 +83,18 @@ function initApp() {
 function navigateTo(page) {
   currentPage = page;
   document.querySelectorAll('.sb-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
-  const titles = { dashboard: 'Dashboard', products: 'Ürün Yönetimi', inquiries: 'Müşteri Sorguları', sales: 'Satış Yönetimi', settings: 'Ayarlar' };
+  const titles = {
+    dashboard: 'Dashboard', products: 'Products', inquiries: 'Customer Inquiries',
+    sales: 'Sales', settings: 'Settings', categories: 'Categories & Menus',
+    sterility: 'Sterility Codes', media: 'Media Library', content: 'Site Content'
+  };
   document.getElementById('pageTitle').textContent = titles[page] || page;
   document.getElementById('pageActions').innerHTML = '';
-  ({ dashboard: renderDashboard, products: renderProducts, inquiries: renderInquiries, sales: renderSales, settings: renderSettings }[page] || (() => {}))();
+  ({
+    dashboard: renderDashboard, products: renderProducts, inquiries: renderInquiries,
+    sales: renderSales, settings: renderSettings, categories: renderCategories,
+    sterility: renderSterility, media: renderMedia, content: renderContent
+  }[page] || (() => {}))();
 }
 
 /* ── DASHBOARD ── */
@@ -546,10 +554,442 @@ function renderSettings() {
     if (np !== np2) { msg.className = 'settings-err'; msg.textContent = 'Yeni şifreler eşleşmiyor.'; msg.classList.remove('hidden'); return; }
     const res = await api('/api/auth/change-password', { method: 'POST', body: { currentPassword: cur, newPassword: np } });
     if (res && !res.error) {
-      msg.className = 'settings-ok'; msg.textContent = 'Şifre başarıyla güncellendi.';
+      msg.className = 'settings-ok'; msg.textContent = 'Password updated successfully.';
     } else {
-      msg.className = 'settings-err'; msg.textContent = res?.error || 'Hata';
+      msg.className = 'settings-err'; msg.textContent = res?.error || 'Error';
     }
     msg.classList.remove('hidden');
   });
+}
+
+/* ══════════════════════════════════════════════════════
+   CATEGORIES & MENUS
+══════════════════════════════════════════════════════ */
+let allCategories = [];
+
+async function renderCategories() {
+  const body = document.getElementById('contentBody');
+  body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+  document.getElementById('pageActions').innerHTML =
+    '<button class="btn-primary" onclick="openAddCategory()">+ Add Category</button>';
+
+  const data = await api('/api/categories');
+  if (!data || !data.success) { body.innerHTML = '<p class="err-msg">Failed to load categories.</p>'; return; }
+  allCategories = data.categories || [];
+
+  const roots = allCategories.filter(c => !c.parent_id);
+
+  function buildTree(cats, parentId, level) {
+    return cats.filter(c => c.parent_id === parentId).map(c => {
+      const indent = '&nbsp;'.repeat(level * 4);
+      const children = buildTree(cats, c.id, level + 1);
+      return `<tr>
+        <td>${indent}<strong>${c.name}</strong></td>
+        <td><code>${c.slug}</code></td>
+        <td>${c.description ? c.description.substring(0,60) + '...' : '-'}</td>
+        <td>${c.parent_id ? (allCategories.find(x=>x.id===c.parent_id)||{}).name||'-' : '<em>Root</em>'}</td>
+        <td>${c.is_active ? '<span class="badge badge-ok">Active</span>' : '<span class="badge badge-err">Inactive</span>'}</td>
+        <td>
+          <button class="btn-sm btn-edit" onclick="openEditCategory(${c.id})">Edit</button>
+          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${c.name}')">Delete</button>
+        </td>
+      </tr>` + children;
+    }).join('');
+  }
+
+  body.innerHTML = `
+    <div class="section-card">
+      <div class="sc-head"><h3>All Categories (${allCategories.length})</h3></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Slug</th><th>Description</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>${buildTree(allCategories, null, 0)}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add/Edit Category Modal -->
+    <div id="catModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header"><h3 id="catModalTitle">Add Category</h3><button class="modal-close" onclick="closeCatModal()">&times;</button></div>
+        <form id="catForm" class="modal-form">
+          <input type="hidden" id="catId">
+          <label>Name *<input type="text" id="catName" required></label>
+          <label>Slug (auto-generated if empty)<input type="text" id="catSlug" placeholder="e.g. covid-19"></label>
+          <label>Description<textarea id="catDesc" rows="3"></textarea></label>
+          <label>Parent Category
+            <select id="catParent">
+              <option value="">— Root (No Parent) —</option>
+              ${allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+            </select>
+          </label>
+          <label>Order Index<input type="number" id="catOrder" value="0" min="0"></label>
+          <label>Image URL<input type="text" id="catImage" placeholder="/uploads/image.jpg"></label>
+          <label class="check-label"><input type="checkbox" id="catActive" checked> Active</label>
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeCatModal()">Cancel</button>
+            <button type="submit" class="btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('catForm').addEventListener('submit', saveCategoryForm);
+}
+
+function openAddCategory() {
+  document.getElementById('catModalTitle').textContent = 'Add Category';
+  document.getElementById('catId').value = '';
+  document.getElementById('catName').value = '';
+  document.getElementById('catSlug').value = '';
+  document.getElementById('catDesc').value = '';
+  document.getElementById('catParent').value = '';
+  document.getElementById('catOrder').value = '0';
+  document.getElementById('catImage').value = '';
+  document.getElementById('catActive').checked = true;
+  document.getElementById('catModal').classList.remove('hidden');
+}
+
+function openEditCategory(id) {
+  const cat = allCategories.find(c => c.id === id);
+  if (!cat) return;
+  document.getElementById('catModalTitle').textContent = 'Edit Category';
+  document.getElementById('catId').value = cat.id;
+  document.getElementById('catName').value = cat.name || '';
+  document.getElementById('catSlug').value = cat.slug || '';
+  document.getElementById('catDesc').value = cat.description || '';
+  document.getElementById('catParent').value = cat.parent_id || '';
+  document.getElementById('catOrder').value = cat.order_index || 0;
+  document.getElementById('catImage').value = cat.image_url || '';
+  document.getElementById('catActive').checked = !!cat.is_active;
+  document.getElementById('catModal').classList.remove('hidden');
+}
+
+function closeCatModal() { document.getElementById('catModal').classList.add('hidden'); }
+
+async function saveCategoryForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('catId').value;
+  const payload = {
+    name: document.getElementById('catName').value,
+    slug: document.getElementById('catSlug').value,
+    description: document.getElementById('catDesc').value,
+    parent_id: document.getElementById('catParent').value || null,
+    order_index: parseInt(document.getElementById('catOrder').value) || 0,
+    image_url: document.getElementById('catImage').value,
+    is_active: document.getElementById('catActive').checked ? 1 : 0
+  };
+  const res = id
+    ? await api('/api/categories/' + id, { method: 'PUT', body: payload })
+    : await api('/api/categories', { method: 'POST', body: payload });
+  if (res && res.success) { toast(id ? 'Category updated.' : 'Category created.'); closeCatModal(); renderCategories(); }
+  else toast(res?.error || 'Failed to save.', 'err');
+}
+
+async function deleteCategory(id, name) {
+  if (!confirm('Delete category "' + name + '"? This cannot be undone.')) return;
+  const res = await api('/api/categories/' + id, { method: 'DELETE' });
+  if (res && res.success) { toast('Category deleted.'); renderCategories(); }
+  else toast(res?.error || 'Failed to delete.', 'err');
+}
+
+/* ══════════════════════════════════════════════════════
+   STERILITY CODES
+══════════════════════════════════════════════════════ */
+async function renderSterility() {
+  const body = document.getElementById('contentBody');
+  body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+  document.getElementById('pageActions').innerHTML =
+    '<button class="btn-primary" onclick="openGenCode()">+ Generate Code</button>';
+
+  const data = await api('/api/sterility');
+  const codes = (data && data.codes) ? data.codes : [];
+
+  body.innerHTML = `
+    <div class="section-card">
+      <div class="sc-head"><h3>Sterility Codes (${codes.length})</h3></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Code</th><th>Product</th><th>Catalog No</th><th>Batch No</th>
+              <th>Customer</th><th>Invoice Date</th><th>Expiry</th><th>Result</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${codes.length === 0 ? '<tr><td colspan="9" style="text-align:center;color:#888">No codes generated yet.</td></tr>' :
+              codes.map(c => `
+                <tr>
+                  <td><code class="code-cell">${c.code}</code></td>
+                  <td>${c.product_name || '-'}</td>
+                  <td>${c.catalog_no || '-'}</td>
+                  <td>${c.batch_no || '-'}</td>
+                  <td>${c.customer_name || '-'} ${c.customer_company ? '(' + c.customer_company + ')' : ''}</td>
+                  <td>${c.invoice_date || '-'}</td>
+                  <td>${c.expiry_date || '-'}</td>
+                  <td><span class="badge ${c.test_result === 'PASS' ? 'badge-ok' : 'badge-err'}">${c.test_result || 'PASS'}</span></td>
+                  <td><button class="btn-sm btn-del" onclick="deleteSterilityCode(${c.id},'${c.code}')">Delete</button></td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Generate Code Modal -->
+    <div id="codeModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header"><h3>Generate Sterility Code</h3><button class="modal-close" onclick="closeCodeModal()">&times;</button></div>
+        <form id="codeForm" class="modal-form">
+          <label>Product Name *<input type="text" id="scProduct" required placeholder="e.g. Nasopharyngeal Swab"></label>
+          <div class="form-row">
+            <label>Catalog No<input type="text" id="scCatalog" placeholder="e.g. NTS-001"></label>
+            <label>Batch No<input type="text" id="scBatch" placeholder="e.g. B2024001"></label>
+          </div>
+          <div class="form-row">
+            <label>Customer Name<input type="text" id="scCustomer"></label>
+            <label>Company<input type="text" id="scCompany"></label>
+          </div>
+          <div class="form-row">
+            <label>Invoice Date *<input type="date" id="scInvoice" required></label>
+            <label>Manufacture Date<input type="date" id="scMfg"></label>
+          </div>
+          <label>Expiry Date<input type="date" id="scExpiry"></label>
+          <label>Notes<textarea id="scNotes" rows="2"></textarea></label>
+          <label>Test Result
+            <select id="scResult">
+              <option value="PASS">PASS</option>
+              <option value="FAIL">FAIL</option>
+            </select>
+          </label>
+          <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeCodeModal()">Cancel</button>
+            <button type="submit" class="btn-primary">Generate Code</button>
+          </div>
+        </form>
+        <div id="generatedCode" class="generated-code hidden">
+          <h4>Generated Code:</h4>
+          <div class="code-display" id="codeDisplay"></div>
+          <button class="btn-sm" onclick="copyCode()">Copy</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('codeForm').addEventListener('submit', genSterilityCode);
+}
+
+function openGenCode() {
+  document.getElementById('scInvoice').value = new Date().toISOString().slice(0,10);
+  document.getElementById('generatedCode').classList.add('hidden');
+  document.getElementById('codeModal').classList.remove('hidden');
+}
+function closeCodeModal() { document.getElementById('codeModal').classList.add('hidden'); }
+
+async function genSterilityCode(e) {
+  e.preventDefault();
+  const payload = {
+    product_name: document.getElementById('scProduct').value,
+    catalog_no: document.getElementById('scCatalog').value,
+    batch_no: document.getElementById('scBatch').value,
+    customer_name: document.getElementById('scCustomer').value,
+    customer_company: document.getElementById('scCompany').value,
+    invoice_date: document.getElementById('scInvoice').value,
+    manufacture_date: document.getElementById('scMfg').value,
+    expiry_date: document.getElementById('scExpiry').value,
+    notes: document.getElementById('scNotes').value,
+    test_result: document.getElementById('scResult').value
+  };
+  const res = await api('/api/sterility', { method: 'POST', body: payload });
+  if (res && res.success) {
+    toast('Code generated: ' + res.code.code);
+    document.getElementById('codeDisplay').textContent = res.code.code;
+    document.getElementById('generatedCode').classList.remove('hidden');
+    document.getElementById('codeForm').reset();
+    setTimeout(() => renderSterility(), 500);
+  } else {
+    toast(res?.error || 'Failed to generate code.', 'err');
+  }
+}
+
+function copyCode() {
+  const code = document.getElementById('codeDisplay').textContent;
+  navigator.clipboard.writeText(code).then(() => toast('Code copied to clipboard!'));
+}
+
+async function deleteSterilityCode(id, code) {
+  if (!confirm('Delete sterility code "' + code + '"?')) return;
+  const res = await api('/api/sterility/' + id, { method: 'DELETE' });
+  if (res && res.success) { toast('Code deleted.'); renderSterility(); }
+  else toast(res?.error || 'Failed.', 'err');
+}
+
+/* ══════════════════════════════════════════════════════
+   MEDIA LIBRARY
+══════════════════════════════════════════════════════ */
+async function renderMedia() {
+  const body = document.getElementById('contentBody');
+  body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+  const data = await api('/api/upload/list');
+  const files = (data && data.files) ? data.files : [];
+
+  body.innerHTML = `
+    <div class="section-card">
+      <div class="sc-head"><h3>Upload Image</h3></div>
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="uploadFile(this)">
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📁</div>
+          <p>Click to select an image or drag and drop</p>
+          <small>JPG, PNG, GIF, WebP, SVG (max 10MB)</small>
+        </div>
+        <div id="uploadProgress" style="display:none">
+          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          <span id="uploadStatus">Uploading...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="sc-head"><h3>Uploaded Files (${files.length})</h3></div>
+      <div class="media-grid" id="mediaGrid">
+        ${files.length === 0 ? '<p style="color:#888;padding:24px">No files uploaded yet.</p>' :
+          files.map(f => `
+            <div class="media-item">
+              <img src="${f.url}" alt="${f.name}" onerror="this.src='/admin/img-error.png'" loading="lazy">
+              <div class="media-info">
+                <span class="media-name">${f.name}</span>
+                <span class="media-size">${(f.size/1024).toFixed(1)} KB</span>
+              </div>
+              <div class="media-actions">
+                <button class="btn-sm" onclick="copyUrl('${f.url}')">Copy URL</button>
+                <button class="btn-sm btn-del" onclick="deleteFile('${f.filename}')">Delete</button>
+              </div>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+  `;
+
+  const dropzone = document.querySelector('.upload-zone');
+  if (dropzone) {
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length) uploadFileObj(files[0]);
+    });
+  }
+}
+
+async function uploadFile(input) {
+  if (!input.files.length) return;
+  uploadFileObj(input.files[0]);
+}
+
+async function uploadFileObj(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('progressFill').style.width = '30%';
+  document.getElementById('uploadStatus').textContent = 'Uploading ' + file.name + '...';
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + authToken },
+      body: formData
+    });
+    document.getElementById('progressFill').style.width = '100%';
+    const data = await res.json();
+    if (data && data.success) {
+      toast('Uploaded: ' + data.file.filename);
+      setTimeout(() => renderMedia(), 500);
+    } else {
+      toast(data?.error || 'Upload failed.', 'err');
+    }
+  } catch (err) {
+    toast('Upload error: ' + err.message, 'err');
+  }
+  document.getElementById('uploadProgress').style.display = 'none';
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(window.location.origin + url).then(() => toast('URL copied!'));
+}
+
+async function deleteFile(filename) {
+  if (!confirm('Delete file "' + filename + '"?')) return;
+  const res = await api('/api/upload/' + encodeURIComponent(filename), { method: 'DELETE' });
+  if (res && res.success) { toast('File deleted.'); renderMedia(); }
+  else toast(res?.error || 'Failed.', 'err');
+}
+
+/* ══════════════════════════════════════════════════════
+   SITE CONTENT CMS
+══════════════════════════════════════════════════════ */
+async function renderContent() {
+  const body = document.getElementById('contentBody');
+  body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+  const data = await api('/api/content/schema');
+  if (!data || !data.success) { body.innerHTML = '<p class="err-msg">Failed to load content schema.</p>'; return; }
+  const rows = data.rows || [];
+
+  // Group by section
+  const sections = {};
+  rows.forEach(r => {
+    if (!sections[r.section]) sections[r.section] = [];
+    sections[r.section].push(r);
+  });
+
+  const sectionHtml = Object.entries(sections).map(([section, fields]) => `
+    <div class="section-card content-section" data-section="${section}">
+      <div class="sc-head"><h3>${section.charAt(0).toUpperCase() + section.slice(1)}</h3></div>
+      <div class="content-fields">
+        ${fields.map(f => `
+          <div class="content-field">
+            <label>${f.label || f.key}
+              ${f.type === 'textarea' || f.type === 'html'
+                ? `<textarea class="content-input" data-key="${section}.${f.key}" rows="4">${escHtml(f.value || '')}</textarea>`
+                : f.type === 'image'
+                  ? `<div class="image-field">
+                      <input type="text" class="content-input" data-key="${section}.${f.key}" value="${f.value || ''}" placeholder="/uploads/image.jpg">
+                      ${f.value ? `<img src="${f.value}" alt="${f.key}" style="max-height:80px;margin-top:8px;border-radius:4px">` : ''}
+                    </div>`
+                  : `<input type="text" class="content-input" data-key="${section}.${f.key}" value="${escHtml(f.value || '')}">`
+              }
+            </label>
+          </div>
+        `).join('')}
+      </div>
+      <div class="section-footer">
+        <button class="btn-primary" onclick="saveSection('${section}')">Save ${section.charAt(0).toUpperCase() + section.slice(1)}</button>
+      </div>
+    </div>
+  `).join('');
+
+  body.innerHTML = sectionHtml || '<p class="err-msg">No content fields defined.</p>';
+}
+
+async function saveSection(section) {
+  const card = document.querySelector(`.content-section[data-section="${section}"]`);
+  if (!card) return;
+  const inputs = card.querySelectorAll('.content-input');
+  const updates = {};
+  inputs.forEach(inp => { updates[inp.dataset.key] = inp.value; });
+  const res = await api('/api/content', { method: 'PUT', body: { updates } });
+  if (res && res.success) toast('Content saved.');
+  else toast(res?.error || 'Failed to save.', 'err');
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

@@ -1,198 +1,624 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Paneli — Innomed Life Sciences</title>
+  <title>Admin Panel — Innomed Life Sciences</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/assets/css/admin.css"/>
 </head>
 <body>
 
-<!-- ██ LOGIN ██ -->
+<!-- ████ LOGIN PAGE ████ -->
 <div id="loginPage" class="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#0A5C8A"/><path d="M13 32L22 12L31 32" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="26" x2="28" y2="26" stroke="white" stroke-width="2.8" stroke-linecap="round"/><circle cx="22" cy="12" r="3" fill="#26C6DA"/></svg>
-      <div><span class="login-brand">INNOMED</span><span class="login-sub">Admin Paneli</span></div>
+      <svg width="44" height="44" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="22" fill="#0A5C8A"/>
+        <path d="M13 32L22 12L31 32" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="16" y1="26" x2="28" y2="26" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+        <circle cx="22" cy="12" r="3" fill="#26C6DA"/>
+      </svg>
+      <div>
+        <span class="login-brand">INNOMED</span>
+        <span class="login-sub">Life Sciences</span>
+      </div>
     </div>
-    <h2>Yönetim Girişi</h2>
-    <p class="login-hint">Panele erişmek için kimlik bilgilerinizi girin.</p>
+    <h2>Administration Portal</h2>
+    <p class="login-hint">Enter your credentials to access the admin panel.</p>
     <form id="loginForm">
-      <div class="lg"><label>Kullanıcı Adı</label><input type="text" id="loginUser" value="admin" required/></div>
-      <div class="lg"><label>Şifre</label><input type="password" id="loginPass" required/></div>
+      <div class="lg">
+        <label>Username</label>
+        <input type="text" id="loginUser" value="admin" placeholder="admin" required/>
+      </div>
+      <div class="lg">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" required/>
+      </div>
       <div class="login-err hidden" id="loginErr"></div>
-      <button type="submit" class="btn-primary-a">Giriş Yap</button>
+      <button type="submit" class="btn-primary-a">Sign In</button>
     </form>
+    <p class="login-footer">Protected area — unauthorized access is prohibited.</p>
   </div>
 </div>
 
-<!-- ██ DASHBOARD ██ -->
+<!-- ████ ADMIN APP ████ -->
 <div id="adminApp" class="admin-app hidden">
 
-  <!-- Sidebar -->
+  <!-- ── SIDEBAR ── -->
   <aside class="sidebar" id="sidebar">
     <div class="sb-header">
-      <svg width="32" height="32" viewBox="0 0 44 44"><circle cx="22" cy="22" r="22" fill="#0A5C8A"/><path d="M13 32L22 12L31 32" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="26" x2="28" y2="26" stroke="white" stroke-width="2.8" stroke-linecap="round"/><circle cx="22" cy="12" r="3" fill="#26C6DA"/></svg>
-      <div class="sb-brand"><span>INNOMED</span><small>Admin</small></div>
+      <svg width="32" height="32" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="22" fill="#0A5C8A"/>
+        <path d="M13 32L22 12L31 32" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="16" y1="26" x2="28" y2="26" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+        <circle cx="22" cy="12" r="3" fill="#26C6DA"/>
+      </svg>
+      <div class="sb-brand">
+        <span>INNOMED</span>
+        <small>Admin Panel</small>
+      </div>
+      <button class="sb-toggle-mobile" id="sidebarClose" title="Close sidebar">
+        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 3L15 15M15 3L3 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
     </div>
+
     <nav class="sb-nav">
+      <!-- Dashboard -->
       <button class="sb-item active" data-page="dashboard">
-        <svg width="20" height="20" viewBox="0 0 20 20"><rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/><rect x="12" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/><rect x="2" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/><rect x="12" y="12" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="12" y="2" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="2" y="12" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/>
+          <rect x="12" y="12" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
         Dashboard
       </button>
-      <button class="sb-item" data-page="products">
-        <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 4 H16 V16 H4 Z" stroke="currentColor" stroke-width="1.5" fill="none" rx="2"/><path d="M8 8 H12 M8 11 H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Ürünler
+
+      <!-- Categories & Menus -->
+      <button class="sb-item" data-page="categories">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M2 4H7V9H2V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M9 5H18M9 10H15M9 15H18M2 13H5M2 13V16M2 13V10M5 13H5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M2 16H7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        Categories &amp; Menus
       </button>
+
+      <!-- Products -->
+      <button class="sb-item" data-page="products">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 5L10 2L17 5V11C17 14.5 13.5 17.5 10 18.5C6.5 17.5 3 14.5 3 11V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M7 10L9 12L13 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Products
+      </button>
+
+      <!-- Inquiries -->
       <button class="sb-item" data-page="inquiries">
-        <svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 4 H18 C18.6 4 19 4.4 19 5 V13 C19 13.6 18.6 14 18 14 H6 L2 18 V5 C2 4.4 2.4 4 3 4Z" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
-        Sorgular
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M2 4H18C18.6 4 19 4.4 19 5V13C19 13.6 18.6 14 18 14H6L2 18V5C2 4.4 2.4 4 3 4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M7 9H13M7 11.5H11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Inquiries
         <span class="sb-badge" id="sbBadge">0</span>
       </button>
+
+      <!-- Sales -->
       <button class="sb-item" data-page="sales">
-        <svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 15 L7 10 L11 12 L17 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-        Satışlar
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 15L7 10L11 12L17 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 5H17V8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17H18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Sales
       </button>
+
+      <!-- Sterility Codes -->
+      <button class="sb-item" data-page="sterility">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 2L3.5 5V10C3.5 13.87 6.3 17.47 10 18.5C13.7 17.47 16.5 13.87 16.5 10V5L10 2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M7 10L9 12L13 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Sterility Codes
+      </button>
+
+      <!-- Media Library -->
+      <button class="sb-item" data-page="media">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M2 13L6 9L9 12L13 7.5L18 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="7" cy="8" r="1.5" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+        Media Library
+      </button>
+
+      <!-- Content -->
+      <button class="sb-item" data-page="content">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M14 3L17 6L8 15H5V12L14 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M12 5L15 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path d="M3 17H17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Content
+      </button>
+
+      <!-- Settings -->
       <button class="sb-item" data-page="settings">
-        <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M10 2V4M10 16V18M18 10H16M4 10H2M15.6 4.4L14.2 5.8M5.8 14.2L4.4 15.6M15.6 15.6L14.2 14.2M5.8 5.8L4.4 4.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        Ayarlar
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M10 2V3.5M10 16.5V18M18 10H16.5M3.5 10H2M15.6 4.4L14.5 5.5M5.5 14.5L4.4 15.6M15.6 15.6L14.5 14.5M5.5 5.5L4.4 4.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        Settings
       </button>
     </nav>
+
+    <!-- Sidebar Footer -->
     <div class="sb-footer">
-      <div class="sb-user"><div class="sb-avatar">A</div><div class="sb-info"><span id="sbUsername">admin</span><small>Yönetici</small></div></div>
-      <button id="logoutBtn" title="Çıkış">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path d="M7 3H3C2.4 3 2 3.4 2 4V14C2 14.6 2.4 15 3 15H7M12 12L16 9L12 6M7 9H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="sb-user">
+        <div class="sb-avatar" id="sbAvatarLetter">A</div>
+        <div class="sb-info">
+          <span id="sbUsername">admin</span>
+          <small>Administrator</small>
+        </div>
+      </div>
+      <button id="logoutBtn" title="Sign out">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path d="M7 3H3C2.4 3 2 3.4 2 4V14C2 14.6 2.4 15 3 15H7M12 12L16 9L12 6M7 9H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </button>
     </div>
   </aside>
 
-  <!-- Main Content -->
-  <main class="main-content" id="mainContent">
-    <div class="content-header" id="contentHeader">
-      <h1 id="pageTitle">Dashboard</h1>
-      <div id="pageActions"></div>
-    </div>
-    <div class="content-body" id="contentBody"></div>
-  </main>
+  <!-- Mobile overlay -->
+  <div class="sidebar-overlay hidden" id="sidebarOverlay"></div>
 
+  <!-- ── MAIN CONTENT ── -->
+  <main class="main-content" id="mainContent">
+
+    <!-- Content Header -->
+    <div class="content-header" id="contentHeader">
+      <div class="ch-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" title="Menu">
+          <svg width="22" height="22" viewBox="0 0 22 22"><path d="M3 6H19M3 11H19M3 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <nav class="breadcrumb" id="breadcrumb">
+            <span>Home</span>
+            <span class="bc-sep">/</span>
+            <span class="bc-current" id="breadcrumbCurrent">Dashboard</span>
+          </nav>
+        </div>
+      </div>
+      <div id="pageActions" class="ch-actions"></div>
+    </div>
+
+    <!-- Content Body -->
+    <div class="content-body" id="contentBody">
+      <div class="loading-skeleton">
+        <div class="sk-row sk-wide"></div>
+        <div class="sk-row sk-medium"></div>
+        <div class="sk-row sk-wide"></div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<!-- ██ PRODUCT MODAL ██ -->
-<div class="modal-bg hidden" id="productModal">
+<!-- ████ MODAL: CATEGORY ████ -->
+<div class="modal-bg hidden" id="categoryModal">
   <div class="modal-box">
-    <div class="modal-head"><h3 id="pmTitle">Ürün Ekle</h3><button class="modal-x" id="pmClose">&times;</button></div>
+    <div class="modal-head">
+      <h3 id="catModalTitle">Add Category</h3>
+      <button class="modal-x" id="catClose" aria-label="Close">&times;</button>
+    </div>
+    <form id="categoryForm" class="modal-form">
+      <input type="hidden" id="catId"/>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Category Name <span class="req">*</span></label>
+          <input type="text" id="catName" placeholder="e.g. Clinical Microbiology" required/>
+        </div>
+        <div class="mfg">
+          <label>Slug <span class="req">*</span></label>
+          <input type="text" id="catSlug" placeholder="e.g. clinical-microbiology" required/>
+        </div>
+      </div>
+      <div class="mfg">
+        <label>Parent Category</label>
+        <select id="catParent">
+          <option value="">— None (Top Level) —</option>
+        </select>
+      </div>
+      <div class="mfg">
+        <label>Description</label>
+        <textarea id="catDescription" rows="3" placeholder="Brief description of this category..."></textarea>
+      </div>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Image URL</label>
+          <input type="url" id="catImageUrl" placeholder="https://..."/>
+        </div>
+        <div class="mfg">
+          <label>Display Order</label>
+          <input type="number" id="catOrder" min="0" value="0"/>
+        </div>
+      </div>
+      <div class="mf-check">
+        <label><input type="checkbox" id="catActive" checked/> Active / Visible</label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="catCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary-a" id="catSubmitBtn">Save Category</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ████ MODAL: CATEGORY PRODUCT ████ -->
+<div class="modal-bg hidden" id="catProductModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="cpModalTitle">Add Product to Category</h3>
+      <button class="modal-x" id="cpClose" aria-label="Close">&times;</button>
+    </div>
+    <form id="catProductForm" class="modal-form">
+      <input type="hidden" id="cpId"/>
+      <input type="hidden" id="cpCategoryId"/>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Brand</label>
+          <input type="text" id="cpBrand" placeholder="e.g. Oxoid, Merck..."/>
+        </div>
+        <div class="mfg">
+          <label>Stock Code <span class="req">*</span></label>
+          <input type="text" id="cpStockCode" placeholder="e.g. CM0001" required/>
+        </div>
+      </div>
+      <div class="mfg">
+        <label>Stock Name / Product Title <span class="req">*</span></label>
+        <input type="text" id="cpStockName" placeholder="Full product name" required/>
+      </div>
+      <div class="mfg">
+        <label>Purpose / Application</label>
+        <textarea id="cpPurpose" rows="3" placeholder="Describe the intended use or application..."></textarea>
+      </div>
+      <div class="mfg">
+        <label>Display Order</label>
+        <input type="number" id="cpOrder" min="0" value="0"/>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="cpCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary-a" id="cpSubmitBtn">Save Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ████ MODAL: STERILITY CODE GENERATOR ████ -->
+<div class="modal-bg hidden" id="sterilityModal">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <h3 id="stModalTitle">Generate Sterility Code</h3>
+      <button class="modal-x" id="stClose" aria-label="Close">&times;</button>
+    </div>
+    <form id="sterilityForm" class="modal-form">
+      <input type="hidden" id="stId"/>
+
+      <div class="modal-section-label">Product Information</div>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Product Name <span class="req">*</span></label>
+          <input type="text" id="stProductName" placeholder="Full product name" required/>
+        </div>
+        <div class="mfg">
+          <label>Catalog No <span class="req">*</span></label>
+          <input type="text" id="stCatalogNo" placeholder="e.g. INN-CM-001" required/>
+        </div>
+      </div>
+      <div class="mfg">
+        <label>Batch / Lot Number <span class="req">*</span></label>
+        <input type="text" id="stBatchNo" placeholder="e.g. BL20250001" required/>
+      </div>
+
+      <div class="modal-section-label">Customer Information</div>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Customer Name</label>
+          <input type="text" id="stCustomerName" placeholder="Full name"/>
+        </div>
+        <div class="mfg">
+          <label>Customer Company</label>
+          <input type="text" id="stCustomerCompany" placeholder="Company name"/>
+        </div>
+      </div>
+      <div class="mfg">
+        <label>Invoice Date</label>
+        <input type="date" id="stInvoiceDate"/>
+      </div>
+
+      <div class="modal-section-label">Dates &amp; Test Result</div>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Manufacture Date <span class="req">*</span></label>
+          <input type="date" id="stManufactureDate" required/>
+        </div>
+        <div class="mfg">
+          <label>Expiry Date <span class="req">*</span></label>
+          <input type="date" id="stExpiryDate" required/>
+        </div>
+      </div>
+      <div class="mfg">
+        <label>Test Result <span class="req">*</span></label>
+        <select id="stTestResult" required>
+          <option value="">— Select Result —</option>
+          <option value="PASS">PASS — Sterility Confirmed</option>
+          <option value="FAIL">FAIL — Sterility Not Confirmed</option>
+          <option value="PENDING">PENDING — Awaiting Results</option>
+        </select>
+      </div>
+      <div class="mfg">
+        <label>Notes</label>
+        <textarea id="stNotes" rows="3" placeholder="Optional notes or remarks..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="stCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary-a" id="stSubmitBtn">Generate Code</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ████ MODAL: PRODUCT ████ -->
+<div class="modal-bg hidden" id="productModal">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <h3 id="pmTitle">Add Product</h3>
+      <button class="modal-x" id="pmClose" aria-label="Close">&times;</button>
+    </div>
     <form id="productForm" class="modal-form">
       <input type="hidden" id="pmId"/>
       <div class="mf-row">
-        <div class="mfg"><label>Katalog No</label><input type="text" id="pmCatalog"/></div>
-        <div class="mfg"><label>Kategori *</label>
+        <div class="mfg">
+          <label>Catalog No</label>
+          <input type="text" id="pmCatalog" placeholder="e.g. INN-001"/>
+        </div>
+        <div class="mfg">
+          <label>Category <span class="req">*</span></label>
           <select id="pmCat" required>
-            <option value="clinical">Klinik Mikrobiyoloji</option>
-            <option value="industrial">Endüstriyel Mikrobiyoloji</option>
-            <option value="environment">Çevre Kontrolü</option>
+            <option value="">— Select Category —</option>
+            <option value="clinical">Clinical Microbiology</option>
+            <option value="industrial">Industrial Microbiology</option>
+            <option value="environment">Environmental Control</option>
             <option value="helicomed">HelicoMed</option>
           </select>
         </div>
       </div>
-      <div class="mf-row">
-        <div class="mfg"><label>Ürün Adı (TR) *</label><input type="text" id="pmNameTr" required/></div>
-        <div class="mfg"><label>Ürün Adı (EN) *</label><input type="text" id="pmNameEn" required/></div>
+      <div class="mfg">
+        <label>Product Name (EN) <span class="req">*</span></label>
+        <input type="text" id="pmNameEn" required placeholder="Full product name in English"/>
       </div>
-      <div class="mfg"><label>Alt Kategori</label><input type="text" id="pmSubcat"/></div>
-      <div class="mfg"><label>Açıklama (TR)</label><textarea id="pmDescTr" rows="3"></textarea></div>
-      <div class="mfg"><label>Açıklama (EN)</label><textarea id="pmDescEn" rows="3"></textarea></div>
-      <div class="mf-row">
-        <div class="mfg"><label>Format</label><input type="text" id="pmFormat" placeholder="Petri Plate, Tube..."/></div>
-        <div class="mfg"><label>Birim</label><input type="text" id="pmUnit" value="adet"/></div>
+      <div class="mfg">
+        <label>Description (EN)</label>
+        <textarea id="pmDescEn" rows="3" placeholder="Product description in English..."></textarea>
       </div>
       <div class="mf-row">
-        <div class="mfg"><label>Fiyat</label><input type="number" id="pmPrice" step="0.01" min="0"/></div>
-        <div class="mfg"><label>Para Birimi</label><select id="pmCurrency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="TRY">TRY</option></select></div>
+        <div class="mfg">
+          <label>Format</label>
+          <input type="text" id="pmFormat" placeholder="e.g. Petri Plate, Tube, Bottle"/>
+        </div>
+        <div class="mfg">
+          <label>Unit</label>
+          <input type="text" id="pmUnit" value="pcs" placeholder="pcs, box, pack..."/>
+        </div>
       </div>
       <div class="mf-row">
-        <div class="mfg"><label>Stok Durumu</label>
-          <select id="pmStockStatus">
-            <option value="available">Stokta Var</option>
-            <option value="limited">Sınırlı Stok</option>
-            <option value="out_of_stock">Stok Dışı</option>
+        <div class="mfg">
+          <label>Price</label>
+          <input type="number" id="pmPrice" step="0.01" min="0" placeholder="0.00"/>
+        </div>
+        <div class="mfg">
+          <label>Currency</label>
+          <select id="pmCurrency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="TRY">TRY</option>
           </select>
         </div>
-        <div class="mfg"><label>Stok Miktarı</label><input type="number" id="pmStockQty" min="0"/></div>
       </div>
-      <div class="mf-check"><label><input type="checkbox" id="pmFeatured"/> Öne Çıkan Ürün</label></div>
+      <div class="mf-row">
+        <div class="mfg">
+          <label>Stock Status</label>
+          <select id="pmStockStatus">
+            <option value="available">In Stock</option>
+            <option value="limited">Limited Stock</option>
+            <option value="out_of_stock">Out of Stock</option>
+          </select>
+        </div>
+        <div class="mfg">
+          <label>Stock Quantity</label>
+          <input type="number" id="pmStockQty" min="0" placeholder="0"/>
+        </div>
+      </div>
+      <div class="mf-check">
+        <label><input type="checkbox" id="pmFeatured"/> Mark as Featured Product</label>
+      </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="pmCancelBtn">İptal</button>
-        <button type="submit" class="btn-primary-a" id="pmSubmitBtn">Kaydet</button>
+        <button type="button" class="btn-cancel" id="pmCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary-a" id="pmSubmitBtn">Save Product</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ██ SALE MODAL ██ -->
+<!-- ████ MODAL: SALE ████ -->
 <div class="modal-bg hidden" id="saleModal">
   <div class="modal-box">
-    <div class="modal-head"><h3>Satış Ekle</h3><button class="modal-x" id="smClose">&times;</button></div>
+    <div class="modal-head">
+      <h3 id="smTitle">Add Sale</h3>
+      <button class="modal-x" id="smClose" aria-label="Close">&times;</button>
+    </div>
     <form id="saleForm" class="modal-form">
+      <input type="hidden" id="smId"/>
       <div class="mf-row">
-        <div class="mfg"><label>Ürün Seç</label>
+        <div class="mfg">
+          <label>Select Product</label>
           <select id="smProductSel">
-            <option value="">Manuel giriş</option>
+            <option value="">— Manual entry —</option>
           </select>
         </div>
-        <div class="mfg"><label>Ürün Adı *</label><input type="text" id="smProductName" required/></div>
+        <div class="mfg">
+          <label>Product Name <span class="req">*</span></label>
+          <input type="text" id="smProductName" required placeholder="Product name"/>
+        </div>
       </div>
       <div class="mf-row">
-        <div class="mfg"><label>Katalog No</label><input type="text" id="smCatalog"/></div>
-        <div class="mfg"><label>Miktar *</label><input type="number" id="smQty" min="1" required/></div>
+        <div class="mfg">
+          <label>Catalog No</label>
+          <input type="text" id="smCatalog" placeholder="e.g. INN-001"/>
+        </div>
+        <div class="mfg">
+          <label>Quantity <span class="req">*</span></label>
+          <input type="number" id="smQty" min="1" required placeholder="1"/>
+        </div>
       </div>
       <div class="mf-row">
-        <div class="mfg"><label>Birim Fiyat</label><input type="number" id="smUnitPrice" step="0.01" min="0"/></div>
-        <div class="mfg"><label>Para Birimi</label><select id="smCurrency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="TRY">TRY</option></select></div>
+        <div class="mfg">
+          <label>Unit Price</label>
+          <input type="number" id="smUnitPrice" step="0.01" min="0" placeholder="0.00"/>
+        </div>
+        <div class="mfg">
+          <label>Currency</label>
+          <select id="smCurrency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="TRY">TRY</option>
+          </select>
+        </div>
       </div>
       <div class="mf-row">
-        <div class="mfg"><label>Müşteri Adı</label><input type="text" id="smCustomer"/></div>
-        <div class="mfg"><label>Şirket</label><input type="text" id="smCompany"/></div>
+        <div class="mfg">
+          <label>Customer Name</label>
+          <input type="text" id="smCustomer" placeholder="Full name"/>
+        </div>
+        <div class="mfg">
+          <label>Company</label>
+          <input type="text" id="smCompany" placeholder="Company name"/>
+        </div>
       </div>
       <div class="mf-row">
-        <div class="mfg"><label>Ülke</label><input type="text" id="smCountry" value="Turkey"/></div>
-        <div class="mfg"><label>Satış Tarihi</label><input type="date" id="smDate"/></div>
+        <div class="mfg">
+          <label>Country</label>
+          <input type="text" id="smCountry" value="Turkey"/>
+        </div>
+        <div class="mfg">
+          <label>Sale Date</label>
+          <input type="date" id="smDate"/>
+        </div>
       </div>
-      <div class="mfg"><label>Notlar</label><textarea id="smNotes" rows="2"></textarea></div>
+      <div class="mfg">
+        <label>Notes</label>
+        <textarea id="smNotes" rows="2" placeholder="Optional notes..."></textarea>
+      </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="smCancelBtn">İptal</button>
-        <button type="submit" class="btn-primary-a">Kaydet</button>
+        <button type="button" class="btn-cancel" id="smCancelBtn">Cancel</button>
+        <button type="submit" class="btn-primary-a">Save Sale</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ██ INQUIRY MODAL ██ -->
+<!-- ████ MODAL: INQUIRY ████ -->
 <div class="modal-bg hidden" id="inqModal">
   <div class="modal-box">
-    <div class="modal-head"><h3>Sorgu Detayı</h3><button class="modal-x" id="imClose">&times;</button></div>
+    <div class="modal-head">
+      <h3>Inquiry Detail</h3>
+      <button class="modal-x" id="imClose" aria-label="Close">&times;</button>
+    </div>
     <div id="inqDetail" class="inq-detail"></div>
     <form id="inqUpdateForm" class="modal-form">
       <input type="hidden" id="imId"/>
-      <div class="mf-row">
-        <div class="mfg"><label>Durum</label>
-          <select id="imStatus">
-            <option value="new">Yeni</option>
-            <option value="read">Okundu</option>
-            <option value="responded">Yanıtlandı</option>
-            <option value="closed">Kapatıldı</option>
-          </select>
-        </div>
+      <div class="mfg">
+        <label>Status</label>
+        <select id="imStatus">
+          <option value="new">New</option>
+          <option value="read">Read</option>
+          <option value="responded">Responded</option>
+          <option value="closed">Closed</option>
+        </select>
       </div>
-      <div class="mfg"><label>Admin Notu</label><textarea id="imNotes" rows="3"></textarea></div>
+      <div class="mfg">
+        <label>Admin Note</label>
+        <textarea id="imNotes" rows="3" placeholder="Internal notes or response summary..."></textarea>
+      </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="imCancelBtn">Kapat</button>
-        <button type="submit" class="btn-primary-a">Güncelle</button>
+        <button type="button" class="btn-cancel" id="imCancelBtn">Close</button>
+        <button type="submit" class="btn-primary-a">Update</button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- ████ MODAL: IMAGE UPLOAD / MEDIA LIBRARY ████ -->
+<div class="modal-bg hidden" id="mediaModal">
+  <div class="modal-box modal-box-xl">
+    <div class="modal-head">
+      <h3>Upload / Select Image</h3>
+      <button class="modal-x" id="mediaClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-form">
+
+      <!-- Upload Area -->
+      <div class="upload-area" id="uploadDropZone">
+        <input type="file" id="uploadFileInput" accept="image/*" multiple class="upload-file-input"/>
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="12" fill="#EFF6FF"/>
+          <path d="M24 32V20M24 20L19 25M24 20L29 25" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16 36H32C34.2 36 36 34.2 36 32V28" stroke="#0A5C8A" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <p class="upload-title">Drag &amp; drop images here</p>
+        <p class="upload-sub">or <button type="button" class="upload-browse-btn" id="uploadBrowseBtn">browse files</button></p>
+        <p class="upload-hint">Supported: JPG, PNG, WebP, GIF — Max 5MB each</p>
+      </div>
+
+      <!-- Upload Progress (hidden by default) -->
+      <div class="upload-progress hidden" id="uploadProgress">
+        <div class="up-file" id="upFileName">Uploading...</div>
+        <div class="up-track">
+          <div class="up-fill" id="upFill" style="width:0%"></div>
+        </div>
+        <div class="up-pct" id="upPct">0%</div>
+      </div>
+
+      <!-- Existing Images Gallery -->
+      <div class="media-gallery-section">
+        <div class="mgs-header">
+          <h4>Existing Images</h4>
+          <div class="sc-search">
+            <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <input type="text" id="mediaSearch" placeholder="Search images..."/>
+          </div>
+        </div>
+        <div class="media-grid" id="mediaGrid">
+          <div class="media-empty">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#F0F4F8"/><path d="M10 38L20 24L27 31L34 20L42 38H10Z" stroke="#94A3B8" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <p>No images yet. Upload your first image above.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="mediaCancelBtn">Cancel</button>
+        <button type="button" class="btn-primary-a" id="mediaSelectBtn" disabled>Insert Selected</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toastMsg"></div>
 
 <script src="/assets/js/admin.js"></script>
 </body>
