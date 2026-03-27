@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="Innomed Life Sciences – Prepared Microbiology Culture Media Manufacturer. Clinical, industrial and environmental control media. Istanbul, Turkey."/>
-  <title>Innomed Life Sciences | Prepared Culture Media Manufacturer</title>
+  <meta name="description" content="Innomed Life Sciences – Microbiological and diagnostic products. Clinical, industrial and environmental control media. Istanbul, Turkey."/>
+  <title>Innomed Life Sciences | Diagnostic &amp; Microbiological Products</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet"/>
@@ -12,11 +12,11 @@
 </head>
 <body>
 
-<!-- ████ NAVBAR ████ -->
+<!-- NAVBAR -->
 <header class="navbar" id="navbar">
   <div class="container nav-inner">
-    <a href="/" class="logo" id="logoLink">
-      <svg class="logo-mark" width="38" height="38" viewBox="0 0 38 38">
+    <a href="/" data-spa class="logo">
+      <svg width="36" height="36" viewBox="0 0 38 38">
         <circle cx="19" cy="19" r="19" fill="#0A5C8A"/>
         <path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
         <line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
@@ -28,120 +28,51 @@
       </div>
     </a>
 
-    <!-- Dynamic mega-menu navigation -->
-    <nav class="main-nav" id="mainNav">
-      <!-- Populated by JS from /api/categories -->
-      <div class="nav-loading"></div>
-    </nav>
+    <!-- Dynamic nav — populated by main.js -->
+    <nav id="mainNav"></nav>
 
-    <div class="nav-actions">
-      <a href="/verify" class="nav-link-verify" id="navVerify">Sterility Verify</a>
-      <a href="#contact" class="nav-link-contact" id="navContact">Contact</a>
-      <button class="lang-toggle" id="langBtn" title="Switch Language">
-        <span id="langActive">EN</span>
-        <span class="lang-sep">|</span>
-        <span id="langOther">TR</span>
-      </button>
-      <a href="/admin" class="admin-link">Admin</a>
-      <button class="hamburger" id="hamburger" aria-label="Menu">
-        <span></span><span></span><span></span>
-      </button>
-    </div>
+    <!-- Hamburger for mobile -->
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
-  <!-- Mobile menu -->
-  <div class="mobile-nav hidden" id="mobileNav">
-    <div class="mobile-nav-inner" id="mobileNavInner">
-      <!-- Populated by JS -->
+
+  <!-- Mobile drawer -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <div class="mobile-drawer-inner">
+      <button class="drawer-close" id="drawerClose">&times;</button>
+      <div id="mobileNavLinks"></div>
     </div>
   </div>
 </header>
 
-<!-- ████ MAIN APP ████ -->
+<!-- MAIN APP -->
 <div id="app">
-  <!-- All page content rendered here by JS router -->
-  <div id="pageLoader" class="page-loader">
-    <div class="loader-spinner"></div>
-  </div>
+  <div class="page-loading"><div class="spinner"></div></div>
 </div>
 
-<!-- ████ FOOTER ████ -->
-<footer class="footer" id="siteFooter">
-  <div class="container footer-grid">
-    <div class="footer-brand">
-      <a href="/" class="logo">
-        <svg class="logo-mark" width="34" height="34" viewBox="0 0 38 38">
-          <circle cx="19" cy="19" r="19" fill="#0A5C8A"/>
-          <path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="19" cy="10" r="2.8" fill="#26C6DA"/>
-        </svg>
-        <div class="logo-text">
-          <span class="logo-name" style="color:#fff">INNOMED</span>
-          <span class="logo-sub" style="color:#90CAF9">Life Sciences</span>
-        </div>
-      </a>
-      <p id="footerTagline">Global standard in prepared microbiology culture media. Istanbul, Turkey.</p>
-    </div>
-    <div class="footer-col">
-      <h4 id="footerCol1Title">Quick Links</h4>
-      <ul>
-        <li><a href="/#about">About Us</a></li>
-        <li><a href="/#products">Products</a></li>
-        <li><a href="/verify">Sterility Verify</a></li>
-        <li><a href="/#contact">Contact</a></li>
-      </ul>
-    </div>
-    <div class="footer-col">
-      <h4 id="footerCol2Title">Product Categories</h4>
-      <ul id="footerCategories">
-        <!-- Populated by JS -->
-      </ul>
-    </div>
-    <div class="footer-col">
-      <h4 id="footerCol3Title">Contact</h4>
-      <ul>
-        <li><a href="mailto:info@innomedlifesci.com" id="footerEmail">info@innomedlifesci.com</a></li>
-        <li><a href="tel:+905437695450" id="footerPhone">+90 543 769 54 50</a></li>
-        <li><span id="footerAddress">Ümraniye, İstanbul, Turkey</span></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <div class="container footer-bottom-inner">
-      <p id="footerCopyright">© 2025 Innomed Life Sciences. All rights reserved.</p>
-      <a href="/admin">Admin Panel</a>
-    </div>
-  </div>
-</footer>
+<!-- FOOTER — populated by main.js -->
+<footer id="siteFooter"></footer>
 
 <!-- Back to top -->
-<button class="back-top hidden" id="backTop" aria-label="Back to top">
-  <svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 13L10 7L15 13" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-</button>
+<button id="backTop" aria-label="Back to top">&#8679;</button>
 
 <!-- Product Inquiry Modal -->
-<div class="modal-overlay hidden" id="inquiryModal">
-  <div class="modal">
-    <button class="modal-close" id="modalClose">&times;</button>
-    <h3>Product Inquiry / Quote Request</h3>
-    <p class="modal-product-name" id="modalProductName"></p>
-    <form id="inquiryForm" novalidate>
-      <input type="hidden" name="product_id" id="inqProductId"/>
-      <input type="hidden" name="product_name" id="inqProductName"/>
-      <div class="form-row">
-        <div class="fg"><label>Full Name *</label><input type="text" name="customer_name" required/></div>
-        <div class="fg"><label>Company</label><input type="text" name="company"/></div>
+<div id="inquiryModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Product Inquiry</h3>
+      <button id="modalClose" class="modal-close">&times;</button>
+    </div>
+    <p id="modalProductName" style="font-size:.88rem;color:#0A5C8A;font-weight:600;margin:0 24px 4px;padding-bottom:12px;border-bottom:1px solid #D0E4F0"></p>
+    <form id="inquiryForm" style="padding:20px 24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div><label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:5px">Full Name *</label><input type="text" name="customer_name" required style="width:100%;padding:10px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:.88rem;outline:none"></div>
+        <div><label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:5px">Email *</label><input type="email" name="customer_email" required style="width:100%;padding:10px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:.88rem;outline:none"></div>
       </div>
-      <div class="form-row">
-        <div class="fg"><label>Email *</label><input type="email" name="customer_email" required/></div>
-        <div class="fg"><label>Phone</label><input type="tel" name="customer_phone"/></div>
-      </div>
-      <div class="fg"><label>Quantity / Description *</label><textarea name="message" rows="3" required></textarea></div>
-      <button type="submit" class="btn btn-primary btn-full">Send Inquiry</button>
-      <div class="form-ok hidden" id="inqOk">
-        <svg width="16" height="16" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="#00897B"/><path d="M5 9L8 12L13 6" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
-        <span>Your inquiry has been sent. We'll get back to you shortly.</span>
-      </div>
+      <div style="margin-bottom:14px"><label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:5px">Message / Quantity *</label><textarea name="message" rows="4" required style="width:100%;padding:10px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:.88rem;outline:none;resize:vertical"></textarea></div>
+      <button type="submit" style="width:100%;padding:12px;background:linear-gradient(135deg,#0A5C8A,#074570);color:#fff;border:none;border-radius:50px;font-size:.9rem;font-weight:600;cursor:pointer">Send Inquiry</button>
+      <div id="inqOk" style="display:none;margin-top:12px;padding:12px;background:rgba(0,137,123,.08);border:1px solid rgba(0,137,123,.2);border-radius:8px;color:#00897B;font-size:.85rem;text-align:center">Inquiry sent! We will get back to you shortly.</div>
     </form>
   </div>
 </div>

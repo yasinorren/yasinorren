@@ -574,9 +574,11 @@ async function renderCategories() {
   document.getElementById('pageActions').innerHTML =
     '<button class="btn-primary" onclick="openAddCategory()">+ Add Category</button>';
 
-  const data = await api('/api/categories');
-  if (!data || !data.success) { body.innerHTML = '<p class="err-msg">Failed to load categories.</p>'; return; }
-  allCategories = data.categories || [];
+  const rawCats = await api('/api/categories');
+  if (!Array.isArray(rawCats)) { body.innerHTML = '<p class="err-msg">Failed to load categories.</p>'; return; }
+  allCategories = [];
+  function flatCats(arr) { arr.forEach(c => { const kids = c.children||[]; delete c.children; allCategories.push(c); if(kids.length) flatCats(kids); }); }
+  flatCats(rawCats);
 
   const roots = allCategories.filter(c => !c.parent_id);
 
@@ -684,14 +686,14 @@ async function saveCategoryForm(e) {
   const res = id
     ? await api('/api/categories/' + id, { method: 'PUT', body: payload })
     : await api('/api/categories', { method: 'POST', body: payload });
-  if (res && res.success) { toast(id ? 'Category updated.' : 'Category created.'); closeCatModal(); renderCategories(); }
+  if (res && (res.id || res.message) && !res.error) { toast(id ? 'Category updated.' : 'Category created.'); closeCatModal(); renderCategories(); }
   else toast(res?.error || 'Failed to save.', 'err');
 }
 
 async function deleteCategory(id, name) {
   if (!confirm('Delete category "' + name + '"? This cannot be undone.')) return;
   const res = await api('/api/categories/' + id, { method: 'DELETE' });
-  if (res && res.success) { toast('Category deleted.'); renderCategories(); }
+  if (res && res.message && !res.error) { toast('Category deleted.'); renderCategories(); }
   else toast(res?.error || 'Failed to delete.', 'err');
 }
 
@@ -706,7 +708,7 @@ async function renderSterility() {
     '<button class="btn-primary" onclick="openGenCode()">+ Generate Code</button>';
 
   const data = await api('/api/sterility');
-  const codes = (data && data.codes) ? data.codes : [];
+  const codes = Array.isArray(data) ? data : [];
 
   body.innerHTML = `
     <div class="section-card">
@@ -805,9 +807,9 @@ async function genSterilityCode(e) {
     test_result: document.getElementById('scResult').value
   };
   const res = await api('/api/sterility', { method: 'POST', body: payload });
-  if (res && res.success) {
-    toast('Code generated: ' + res.code.code);
-    document.getElementById('codeDisplay').textContent = res.code.code;
+  if (res && res.code && !res.error) {
+    toast('Code generated: ' + res.code);
+    document.getElementById('codeDisplay').textContent = res.code;
     document.getElementById('generatedCode').classList.remove('hidden');
     document.getElementById('codeForm').reset();
     setTimeout(() => renderSterility(), 500);
@@ -824,7 +826,7 @@ function copyCode() {
 async function deleteSterilityCode(id, code) {
   if (!confirm('Delete sterility code "' + code + '"?')) return;
   const res = await api('/api/sterility/' + id, { method: 'DELETE' });
-  if (res && res.success) { toast('Code deleted.'); renderSterility(); }
+  if (res && res.message && !res.error) { toast('Code deleted.'); renderSterility(); }
   else toast(res?.error || 'Failed.', 'err');
 }
 
@@ -836,7 +838,7 @@ async function renderMedia() {
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
   const data = await api('/api/upload/list');
-  const files = (data && data.files) ? data.files : [];
+  const files = Array.isArray(data) ? data : [];
 
   body.innerHTML = `
     <div class="section-card">
@@ -909,8 +911,8 @@ async function uploadFileObj(file) {
     });
     document.getElementById('progressFill').style.width = '100%';
     const data = await res.json();
-    if (data && data.success) {
-      toast('Uploaded: ' + data.file.filename);
+    if (data && data.filename && !data.error) {
+      toast('Uploaded: ' + data.filename);
       setTimeout(() => renderMedia(), 500);
     } else {
       toast(data?.error || 'Upload failed.', 'err');
@@ -928,7 +930,7 @@ function copyUrl(url) {
 async function deleteFile(filename) {
   if (!confirm('Delete file "' + filename + '"?')) return;
   const res = await api('/api/upload/' + encodeURIComponent(filename), { method: 'DELETE' });
-  if (res && res.success) { toast('File deleted.'); renderMedia(); }
+  if (res && res.message && !res.error) { toast('File deleted.'); renderMedia(); }
   else toast(res?.error || 'Failed.', 'err');
 }
 
@@ -940,8 +942,8 @@ async function renderContent() {
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
   const data = await api('/api/content/schema');
-  if (!data || !data.success) { body.innerHTML = '<p class="err-msg">Failed to load content schema.</p>'; return; }
-  const rows = data.rows || [];
+  if (!Array.isArray(data)) { body.innerHTML = '<p class="err-msg">Failed to load content schema.</p>'; return; }
+  const rows = data;
 
   // Group by section
   const sections = {};
@@ -986,7 +988,7 @@ async function saveSection(section) {
   const updates = {};
   inputs.forEach(inp => { updates[inp.dataset.key] = inp.value; });
   const res = await api('/api/content', { method: 'PUT', body: { updates } });
-  if (res && res.success) toast('Content saved.');
+  if (res && res.message && !res.error) toast('Content saved.');
   else toast(res?.error || 'Failed to save.', 'err');
 }
 

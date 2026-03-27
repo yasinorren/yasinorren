@@ -2,261 +2,308 @@
 (function () {
   'use strict';
 
-  /* ── State ─────────────────────────────────────────── */
-  let lang = localStorage.getItem('lang') || 'en';
-  let categories = [];
-  let siteContent = {};
+  var lang = localStorage.getItem('lang') || 'en';
+  var categories = [];
+  var siteContent = {};
 
-  /* ── i18n ───────────────────────────────────────────── */
-  const T = {
+  /* ── Translations ── */
+  var T = {
     en: {
-      home: 'Home', about: 'About Us', products: 'Products', contact: 'Contact',
-      verify: 'Sterility Verification', admin: 'Admin',
-      heroTitle: 'Advanced Life Sciences Solutions',
-      heroSub: 'Innovative diagnostic products for microbiology, infection control and environmental monitoring.',
-      heroCta: 'Explore Products', heroVerify: 'Verify Sterility',
-      aboutTitle: 'About Innomed Life Sciences',
-      aboutText: 'Innomed Life Sciences is a leading distributor of high-quality microbiological and diagnostic products. We serve clinical laboratories, hospitals, environmental testing facilities and industrial microbiology labs across the region.',
-      qualityTitle: 'Quality & Compliance',
-      qualityText: 'All products meet strict international quality standards. Our portfolio includes ISO-certified and CE-marked products from world-class manufacturers.',
-      contactTitle: 'Get In Touch',
-      contactName: 'Full Name', contactEmail: 'Email', contactMsg: 'Message', contactSend: 'Send Message',
-      contactSuccess: 'Message sent successfully!',
-      verifyTitle: 'Sterility Code Verification',
-      verifyPlaceholder: 'Enter code (e.g. INN-STERI-2024-XXXXXXXX)',
-      verifyBtn: 'Verify', verifyResult: 'Verification Result',
-      codeValid: 'VALID', codeInvalid: 'NOT FOUND',
-      productName: 'Product Name', catalogNo: 'Catalog No', batchNo: 'Batch No',
-      customer: 'Customer', company: 'Company', invoiceDate: 'Invoice Date',
-      mfgDate: 'Manufacture Date', expDate: 'Expiry Date', result: 'Test Result',
-      brand: 'Brand', stockCode: 'Stock Code', stockName: 'Product Name', purpose: 'Purpose of Use',
-      inquiryTitle: 'Product Inquiry', inquiryName: 'Your Name', inquiryEmail: 'Your Email',
-      inquiryMsg: 'Message / Quantity needed', inquirySend: 'Send Inquiry',
-      inquirySuccess: 'Inquiry sent!', noProducts: 'No products listed for this category yet.',
-      backTop: 'Back to top', allRights: 'All rights reserved.',
-      langToggle: 'TR'
+      home:'Home', products:'Products', verify:'Sterility Verify', contact:'Contact',
+      heroTitle:'Advanced Life Sciences Solutions',
+      heroSub:'Innovative diagnostic products for microbiology, infection control and environmental monitoring.',
+      heroCta:'Explore Products', heroVerify:'Verify Sterility Certificate',
+      aboutTitle:'About Innomed Life Sciences',
+      aboutText:'Innomed Life Sciences is a leading distributor of high-quality microbiological and diagnostic products. We serve clinical laboratories, hospitals, environmental testing facilities and industrial microbiology labs.',
+      qualityTitle:'Quality & Compliance',
+      qualityText:'All products meet strict international quality standards. Our portfolio includes ISO-certified and CE-marked products from world-class manufacturers.',
+      contactTitle:'Get In Touch',
+      contactName:'Full Name', contactEmail:'Email Address', contactMsg:'Your Message',
+      contactSend:'Send Message', contactSuccess:'Message sent! We will get back to you shortly.',
+      verifyTitle:'Sterility Code Verification',
+      verifyPlaceholder:'Enter code — e.g. INN-STERI-2024-XXXXXXXX',
+      verifyBtn:'Verify Code', codeValid:'VALID', codeInvalid:'CODE NOT FOUND',
+      brand:'Brand', stockCode:'Stock Code', stockName:'Product Name', purpose:'Purpose of Use',
+      noProducts:'No products listed for this category yet.',
+      allRights:'All rights reserved.', langToggle:'TR'
     },
     tr: {
-      home: 'Ana Sayfa', about: 'Hakkımızda', products: 'Ürünler', contact: 'İletişim',
-      verify: 'Sterilite Doğrulama', admin: 'Yönetim',
-      heroTitle: 'İleri Yaşam Bilimleri Çözümleri',
-      heroSub: 'Mikrobiyoloji, enfeksiyon kontrolü ve çevre izleme için yenilikçi tanısal ürünler.',
-      heroCta: 'Ürünleri Keşfet', heroVerify: 'Sterilite Doğrula',
-      aboutTitle: 'Innomed Life Sciences Hakkında',
-      aboutText: 'Innomed Life Sciences, yüksek kaliteli mikrobiyolojik ve tanısal ürünlerin önde gelen distribütörüdür.',
-      qualityTitle: 'Kalite ve Uyumluluk',
-      qualityText: 'Tüm ürünler sıkı uluslararası kalite standartlarını karşılar.',
-      contactTitle: 'Bize Ulaşın',
-      contactName: 'Ad Soyad', contactEmail: 'E-posta', contactMsg: 'Mesaj', contactSend: 'Gönder',
-      contactSuccess: 'Mesaj başarıyla gönderildi!',
-      verifyTitle: 'Sterilite Kodu Doğrulama',
-      verifyPlaceholder: 'Kodu girin (örn: INN-STERI-2024-XXXXXXXX)',
-      verifyBtn: 'Doğrula', verifyResult: 'Doğrulama Sonucu',
-      codeValid: 'GEÇERLİ', codeInvalid: 'BULUNAMADI',
-      productName: 'Ürün Adı', catalogNo: 'Katalog No', batchNo: 'Lot No',
-      customer: 'Müşteri', company: 'Şirket', invoiceDate: 'Fatura Tarihi',
-      mfgDate: 'Üretim Tarihi', expDate: 'Son Kullanma Tarihi', result: 'Test Sonucu',
-      brand: 'Marka', stockCode: 'Stok Kodu', stockName: 'Ürün Adı', purpose: 'Kullanım Amacı',
-      inquiryTitle: 'Ürün Sorgusu', inquiryName: 'Adınız', inquiryEmail: 'E-postanız',
-      inquiryMsg: 'Mesaj / İhtiyaç duyulan miktar', inquirySend: 'Sorgu Gönder',
-      inquirySuccess: 'Sorgu gönderildi!', noProducts: 'Bu kategori için henüz ürün eklenmemiş.',
-      backTop: 'Yukarı çık', allRights: 'Tüm hakları saklıdır.',
-      langToggle: 'EN'
+      home:'Ana Sayfa', products:'Ürünler', verify:'Sterilite Doğrulama', contact:'İletişim',
+      heroTitle:'İleri Yaşam Bilimleri Çözümleri',
+      heroSub:'Mikrobiyoloji, enfeksiyon kontrolü ve çevre izleme için yenilikçi tanısal ürünler.',
+      heroCta:'Ürünleri İncele', heroVerify:'Sterilite Sertifikası Doğrula',
+      aboutTitle:'Innomed Life Sciences Hakkında',
+      aboutText:'Innomed Life Sciences, yüksek kaliteli mikrobiyolojik ve tanısal ürünlerin önde gelen distribütörüdür.',
+      qualityTitle:'Kalite ve Uyumluluk',
+      qualityText:'Tüm ürünler sıkı uluslararası kalite standartlarını karşılar.',
+      contactTitle:'Bize Ulaşın',
+      contactName:'Ad Soyad', contactEmail:'E-posta Adresi', contactMsg:'Mesajınız',
+      contactSend:'Gönder', contactSuccess:'Mesajınız iletildi!',
+      verifyTitle:'Sterilite Kodu Doğrulama',
+      verifyPlaceholder:'Kodu girin — örn: INN-STERI-2024-XXXXXXXX',
+      verifyBtn:'Doğrula', codeValid:'GEÇERLİ', codeInvalid:'KOD BULUNAMADI',
+      brand:'Marka', stockCode:'Stok Kodu', stockName:'Ürün Adı', purpose:'Kullanım Amacı',
+      noProducts:'Bu kategori için henüz ürün eklenmemiş.',
+      allRights:'Tüm hakları saklıdır.', langToggle:'EN'
     }
   };
-  const t = (k) => (T[lang] && T[lang][k]) || T.en[k] || k;
+  function t(k) { return (T[lang] && T[lang][k]) || T.en[k] || k; }
 
-  /* ── Router ─────────────────────────────────────────── */
+  /* ── Router ── */
   function navigate(path, push) {
     if (push === undefined) push = true;
     if (push) history.pushState({}, '', path);
-    const app = document.getElementById('app');
+    window.scrollTo(0, 0);
+    var app = document.getElementById('app');
     if (!app) return;
     app.innerHTML = '<div class="page-loading"><div class="spinner"></div></div>';
-    if (path === '/' || path === '') return renderHome(app);
-    if (path === '/verify') return renderVerify(app);
-    const m = path.match(/^\/category\/(.+)$/);
-    if (m) return renderCategory(app, m[1]);
+    if (path === '/' || path === '') { renderHome(app); return; }
+    if (path === '/verify') { renderVerify(app); return; }
+    var m = path.match(/^\/category\/(.+)$/);
+    if (m) { renderCategory(app, m[1]); return; }
     renderHome(app);
   }
 
-  window.addEventListener('popstate', function() { navigate(location.pathname, false); });
+  window.addEventListener('popstate', function () { navigate(location.pathname, false); });
 
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     var a = e.target.closest('a[data-spa]');
     if (!a) return;
     e.preventDefault();
-    navigate(a.getAttribute('href'));
+    var href = a.getAttribute('href');
+    if (href.startsWith('/#')) {
+      navigate('/', false);
+      history.pushState({}, '', href);
+      setTimeout(function () {
+        var id = href.slice(2);
+        var el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 200);
+      return;
+    }
+    navigate(href);
   });
 
-  /* ── API ─────────────────────────────────────────────── */
+  /* ── API ── */
   async function api(url) {
     try {
       var r = await fetch(url);
-      if (!r.ok) throw new Error(r.status);
+      if (!r.ok) return null;
       return r.json();
-    } catch(err) { return null; }
+    } catch (e) { return null; }
   }
 
-  /* ── Navigation ──────────────────────────────────────── */
+  /* ── Build Navbar ── */
   async function buildNav() {
     var data = await api('/api/categories');
-    if (data && data.success) categories = data.categories || [];
+    if (Array.isArray(data)) {
+      /* API returns nested tree — flatten it */
+      categories = [];
+      function flatten(arr) {
+        arr.forEach(function (c) {
+          var kids = c.children || [];
+          delete c.children;
+          categories.push(c);
+          if (kids.length) flatten(kids);
+        });
+      }
+      flatten(data);
+    }
     renderNav();
+    buildMobileNav();
   }
 
   function renderNav() {
     var nav = document.getElementById('mainNav');
     if (!nav) return;
 
-    var roots = categories.filter(function(c) { return !c.parent_id; });
+    var roots = categories.filter(function (c) { return !c.parent_id; });
 
-    var megaCols = roots.map(function(root) {
-      var rootSubs = categories.filter(function(c) { return c.parent_id === root.id; });
-      var subHtml = rootSubs.map(function(sub) {
-        var subSubs = categories.filter(function(c) { return c.parent_id === sub.id; });
-        var ssHtml = subSubs.map(function(ss) {
-          return '<a href="/category/' + ss.slug + '" data-spa class="mega-subitem">\u21b3 ' + ss.name + '</a>';
+    /* Mega-menu columns */
+    var cols = roots.map(function (root) {
+      var subs = categories.filter(function (c) { return c.parent_id === root.id; });
+      var subHtml = subs.map(function (sub) {
+        var subsubs = categories.filter(function (c) { return c.parent_id === sub.id; });
+        var ssHtml = subsubs.map(function (ss) {
+          return '<a href="/category/' + ss.slug + '" data-spa class="mega-subitem">\u21b3 ' + esc(ss.name) + '</a>';
         }).join('');
-        return '<a href="/category/' + sub.slug + '" data-spa class="mega-item">' + sub.name + '</a>' + ssHtml;
+        return '<a href="/category/' + sub.slug + '" data-spa class="mega-item">' + esc(sub.name) + '</a>' + ssHtml;
       }).join('');
-      return '<div class="mega-col"><a href="/category/' + root.slug + '" data-spa class="mega-heading">' + root.name + '</a>' + subHtml + '</div>';
+      return '<div class="mega-col"><a href="/category/' + root.slug + '" data-spa class="mega-heading">' + esc(root.name) + '</a>' + subHtml + '</div>';
     }).join('');
 
     nav.innerHTML =
-      '<a href="/" data-spa class="nav-link">' + t('home') + '</a>' +
-      '<div class="nav-dropdown">' +
-        '<button class="nav-link dropdown-toggle">' + t('products') + ' <span class="chevron">\u25be</span></button>' +
-        '<div class="mega-menu" id="megaMenu">' + megaCols + '</div>' +
+      '<a href="/" data-spa class="nl">' + t('home') + '</a>' +
+      '<div class="nl-drop">' +
+        '<button class="nl nl-btn" id="prodToggle">' + t('products') + ' <span class="arr">&#9660;</span></button>' +
+        '<div class="mega-menu" id="megaMenu">' + (cols || '<p style="padding:16px;color:#888">Loading...</p>') + '</div>' +
       '</div>' +
-      '<a href="/verify" data-spa class="nav-link">' + t('verify') + '</a>' +
-      '<a href="/#contact" class="nav-link">' + t('contact') + '</a>' +
-      '<button id="langBtn" class="lang-btn" onclick="window.__toggleLang()">' + t('langToggle') + '</button>' +
-      '<a href="/admin/" class="btn btn-sm btn-outline-nav">' + t('admin') + '</a>';
+      '<a href="/verify" data-spa class="nl">' + t('verify') + '</a>' +
+      '<a href="/#contact" data-spa class="nl">' + t('contact') + '</a>' +
+      '<button class="lang-btn" onclick="window.__toggleLang()">' + t('langToggle') + '</button>';
 
-    bindDropdown();
-  }
-
-  function bindDropdown() {
-    var toggle = document.querySelector('.dropdown-toggle');
-    var mega = document.getElementById('megaMenu');
-    if (!toggle || !mega) return;
-    toggle.addEventListener('click', function(e) {
-      e.stopPropagation();
-      mega.classList.toggle('open');
+    /* Dropdown toggle */
+    var btn = document.getElementById('prodToggle');
+    var menu = document.getElementById('megaMenu');
+    if (btn && menu) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        menu.classList.toggle('open');
+      });
+    }
+    document.addEventListener('click', function () {
+      if (menu) menu.classList.remove('open');
     });
-    document.addEventListener('click', function() { mega.classList.remove('open'); });
-    mega.addEventListener('click', function(e) { e.stopPropagation(); });
+    if (menu) menu.addEventListener('click', function (e) { e.stopPropagation(); });
   }
 
-  /* ── Home Page ───────────────────────────────────────── */
+  function buildMobileNav() {
+    var container = document.getElementById('mobileNavLinks');
+    if (!container) return;
+    var roots = categories.filter(function (c) { return !c.parent_id; });
+    var html = '<a href="/" data-spa class="mob-link">' + t('home') + '</a>';
+    roots.forEach(function (root) {
+      html += '<a href="/category/' + root.slug + '" data-spa class="mob-link">' + esc(root.name) + '</a>';
+      var subs = categories.filter(function (c) { return c.parent_id === root.id; });
+      subs.forEach(function (sub) {
+        html += '<a href="/category/' + sub.slug + '" data-spa class="mob-link mob-sub">\u2014 ' + esc(sub.name) + '</a>';
+      });
+    });
+    html += '<a href="/verify" data-spa class="mob-link">' + t('verify') + '</a>';
+    html += '<a href="/#contact" data-spa class="mob-link">' + t('contact') + '</a>';
+    container.innerHTML = html;
+  }
+
+  /* ── Home Page ── */
   function renderHome(app) {
-    var roots = categories.filter(function(c) { return !c.parent_id; });
+    var roots = categories.filter(function (c) { return !c.parent_id; });
     var c = siteContent;
 
-    var categoryCards = roots.map(function(cat) {
-      var imgHtml = cat.image_url
-        ? '<img src="' + cat.image_url + '" alt="' + cat.name + '" loading="lazy">'
-        : '<div class="cat-placeholder"><span>\ud83d\udd2c</span></div>';
+    var cards = roots.map(function (cat) {
+      var img = cat.image_url
+        ? '<img src="' + esc(cat.image_url) + '" alt="' + esc(cat.name) + '" loading="lazy">'
+        : '<div class="cat-icon">&#128300;</div>';
       return '<a href="/category/' + cat.slug + '" data-spa class="category-card">' +
-        imgHtml +
-        '<div class="cat-card-body"><h3>' + cat.name + '</h3><p>' + (cat.description || '') + '</p><span class="cat-link">View Products \u2192</span></div>' +
-        '</a>';
+        img +
+        '<div class="cat-card-body"><h3>' + esc(cat.name) + '</h3>' +
+        '<p>' + esc(cat.description || '') + '</p>' +
+        '<span class="cat-link">View Products &#8594;</span>' +
+        '</div></a>';
     }).join('');
 
     app.innerHTML =
+      /* HERO */
       '<section class="hero">' +
-        '<div class="hero-bg"></div>' +
-        '<div class="container hero-content">' +
-          '<div class="hero-badge">Life Sciences &amp; Diagnostics</div>' +
-          '<h1>' + ((c.hero && c.hero.title) || t('heroTitle')) + '</h1>' +
-          '<p>' + ((c.hero && c.hero.subtitle) || t('heroSub')) + '</p>' +
-          '<div class="hero-actions">' +
-            '<button class="btn btn-primary" onclick="document.getElementById(\'categories\').scrollIntoView({behavior:\'smooth\'})">' + t('heroCta') + '</button>' +
-            '<a href="/verify" data-spa class="btn btn-outline">' + t('heroVerify') + '</a>' +
+        '<div class="hero-bg-overlay"></div>' +
+        '<div class="container" style="position:relative;z-index:2;padding-top:80px;padding-bottom:80px">' +
+          '<div class="hero-badge">&#128300; Life Sciences &amp; Diagnostics</div>' +
+          '<h1 class="hero-title">' + ((c.hero && c.hero.title) || t('heroTitle')) + '</h1>' +
+          '<p class="hero-desc">' + ((c.hero && c.hero.subtitle) || t('heroSub')) + '</p>' +
+          '<div class="hero-btns">' +
+            '<button class="btn btn-primary" onclick="document.getElementById(\'categories-sec\').scrollIntoView({behavior:\'smooth\'})">' + t('heroCta') + '</button>' +
+            '<a href="/verify" data-spa class="btn btn-ghost">' + t('heroVerify') + '</a>' +
           '</div>' +
         '</div>' +
       '</section>' +
 
-      '<section class="stats-bar">' +
-        '<div class="container stats-grid">' +
-          '<div class="stat"><strong>7+</strong><span>Product Categories</span></div>' +
-          '<div class="stat"><strong>200+</strong><span>Products</span></div>' +
-          '<div class="stat"><strong>ISO</strong><span>Certified</span></div>' +
-          '<div class="stat"><strong>CE</strong><span>Marked</span></div>' +
-        '</div>' +
-      '</section>' +
+      /* STATS */
+      '<div class="stats-bar"><div class="container stats-row">' +
+        '<div class="stat-item"><strong>7+</strong><span>Product Categories</span></div>' +
+        '<div class="stat-sep"></div>' +
+        '<div class="stat-item"><strong>200+</strong><span>Products</span></div>' +
+        '<div class="stat-sep"></div>' +
+        '<div class="stat-item"><strong>ISO</strong><span>Certified</span></div>' +
+        '<div class="stat-sep"></div>' +
+        '<div class="stat-item"><strong>CE</strong><span>Marked</span></div>' +
+      '</div></div>' +
 
-      '<section class="about-section" id="about">' +
+      /* ABOUT */
+      '<section class="section about-section" id="about">' +
         '<div class="container about-grid">' +
           '<div class="about-text">' +
             '<span class="section-label">Who We Are</span>' +
             '<h2>' + ((c.about && c.about.title) || t('aboutTitle')) + '</h2>' +
             '<p>' + ((c.about && c.about.text) || t('aboutText')) + '</p>' +
-            '<ul class="about-features">' +
-              '<li><i>\u2713</i> Clinical &amp; Industrial Microbiology</li>' +
-              '<li><i>\u2713</i> Environmental Control Products</li>' +
-              '<li><i>\u2713</i> COVID-19 Diagnostics</li>' +
-              '<li><i>\u2713</i> Water Quality Testing</li>' +
+            '<ul class="about-checks">' +
+              '<li>&#10003; Clinical &amp; Industrial Microbiology</li>' +
+              '<li>&#10003; Environmental Control Products</li>' +
+              '<li>&#10003; COVID-19 Diagnostics</li>' +
+              '<li>&#10003; Water Quality Testing (AquaSamp)</li>' +
             '</ul>' +
           '</div>' +
-          '<div class="about-image">' +
-            '<div class="about-img-placeholder"></div>' +
-            '<div class="about-badge"><strong>20+</strong><span>Years Exp.</span></div>' +
+          '<div class="about-visual">' +
+            '<div class="about-visual-inner">' +
+              '<div class="av-top"><span class="av-num">20+</span><span class="av-lbl">Years of Experience</span></div>' +
+              '<div class="av-grid">' +
+                '<div class="av-card"><div class="av-icon">&#128300;</div><span>Microbiology</span></div>' +
+                '<div class="av-card"><div class="av-icon">&#128138;</div><span>Diagnostics</span></div>' +
+                '<div class="av-card"><div class="av-icon">&#127774;</div><span>Environment</span></div>' +
+                '<div class="av-card"><div class="av-icon">&#128167;</div><span>AquaSamp</span></div>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</section>' +
 
-      '<section class="categories-section" id="categories">' +
+      /* CATEGORIES */
+      '<section class="section categories-section" id="categories-sec">' +
         '<div class="container">' +
           '<span class="section-label">Our Portfolio</span>' +
-          '<h2>Product Categories</h2>' +
-          '<p class="section-sub">Comprehensive solutions for every laboratory need</p>' +
-          '<div class="categories-grid">' + (categoryCards || '<p>Loading...</p>') + '</div>' +
+          '<h2 style="font-size:clamp(1.8rem,3.5vw,2.4rem);margin:10px 0 12px">Product Categories</h2>' +
+          '<p style="color:#5A7184;margin-bottom:48px">Comprehensive solutions for every laboratory need</p>' +
+          '<div class="categories-grid">' + (cards || '<p style="color:#888">Loading categories...</p>') + '</div>' +
         '</div>' +
       '</section>' +
 
-      '<section class="quality-section">' +
+      /* QUALITY */
+      '<section class="section quality-section">' +
         '<div class="container quality-grid">' +
-          '<div class="quality-content">' +
-            '<span class="section-label">Standards</span>' +
-            '<h2>' + ((c.quality && c.quality.title) || t('qualityTitle')) + '</h2>' +
-            '<p>' + ((c.quality && c.quality.text) || t('qualityText')) + '</p>' +
-            '<div class="cert-badges">' +
+          '<div class="quality-text">' +
+            '<span class="section-label section-label-light">Standards</span>' +
+            '<h2 style="font-size:clamp(1.8rem,3.5vw,2.4rem);color:#fff;margin:10px 0 14px">' + ((c.quality && c.quality.title) || t('qualityTitle')) + '</h2>' +
+            '<p style="color:rgba(255,255,255,.65);line-height:1.8;margin-bottom:28px">' + ((c.quality && c.quality.text) || t('qualityText')) + '</p>' +
+            '<div class="cert-row">' +
               '<span class="cert-badge">ISO 13485</span>' +
               '<span class="cert-badge">CE Mark</span>' +
               '<span class="cert-badge">GMP</span>' +
+              '<span class="cert-badge">FDA Listed</span>' +
             '</div>' +
           '</div>' +
-          '<div class="quality-icon"><div class="quality-circle"><span>\u2713</span><small>Quality Assured</small></div></div>' +
+          '<div class="quality-circle-wrap">' +
+            '<div class="quality-circle"><div>&#10003;</div><small>Quality Assured</small></div>' +
+          '</div>' +
         '</div>' +
       '</section>' +
 
-      '<section class="verify-cta">' +
-        '<div class="container">' +
-          '<h2>Verify Product Sterility</h2>' +
-          '<p>Check the validity of any Innomed sterility certificate online.</p>' +
-          '<a href="/verify" data-spa class="btn btn-primary">' + t('heroVerify') + '</a>' +
+      /* VERIFY CTA */
+      '<section class="verify-cta-section">' +
+        '<div class="container" style="text-align:center">' +
+          '<h2 style="font-size:clamp(1.6rem,3vw,2.2rem);color:#fff;margin-bottom:12px">Verify Product Sterility</h2>' +
+          '<p style="color:rgba(255,255,255,.8);margin-bottom:32px">Check any Innomed sterility certificate online — available 24/7.</p>' +
+          '<a href="/verify" data-spa class="btn btn-white">Verify Certificate</a>' +
         '</div>' +
       '</section>' +
 
-      '<section class="contact-section" id="contact">' +
+      /* CONTACT */
+      '<section class="section contact-section" id="contact">' +
         '<div class="container contact-grid">' +
           '<div class="contact-info">' +
             '<span class="section-label">Contact</span>' +
-            '<h2>' + t('contactTitle') + '</h2>' +
-            '<div class="contact-details">' +
-              '<div class="contact-item"><i>\ud83d\udccd</i><span>' + ((c.contact && c.contact.address) || 'Istanbul, Turkey') + '</span></div>' +
-              '<div class="contact-item"><i>\ud83d\udcde</i><span>' + ((c.contact && c.contact.phone) || '+90 212 000 0000') + '</span></div>' +
-              '<div class="contact-item"><i>\u2709</i><span>' + ((c.contact && c.contact.email) || 'info@innomed.com.tr') + '</span></div>' +
+            '<h2 style="font-size:clamp(1.6rem,3vw,2.2rem);margin:10px 0 20px">' + t('contactTitle') + '</h2>' +
+            '<div class="contact-items">' +
+              '<div class="contact-item"><span class="ci-icon">&#128205;</span><span>' + ((c.contact && c.contact.address) || 'Istanbul, Turkey') + '</span></div>' +
+              '<div class="contact-item"><span class="ci-icon">&#128222;</span><span>' + ((c.contact && c.contact.phone) || '+90 212 000 0000') + '</span></div>' +
+              '<div class="contact-item"><span class="ci-icon">&#9993;</span><span>' + ((c.contact && c.contact.email) || 'info@innomed.com.tr') + '</span></div>' +
             '</div>' +
           '</div>' +
           '<form class="contact-form" id="contactForm">' +
-            '<div class="form-group"><input type="text" name="name" placeholder="' + t('contactName') + '" required></div>' +
-            '<div class="form-group"><input type="email" name="email" placeholder="' + t('contactEmail') + '" required></div>' +
-            '<div class="form-group"><textarea name="message" rows="5" placeholder="' + t('contactMsg') + '" required></textarea></div>' +
-            '<button type="submit" class="btn btn-primary btn-full">' + t('contactSend') + '</button>' +
-            '<div id="contactMsg" class="form-success" style="display:none">' + t('contactSuccess') + '</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
+              '<div class="fg"><label>' + t('contactName') + ' *</label><input type="text" name="customer_name" required></div>' +
+              '<div class="fg"><label>' + t('contactEmail') + ' *</label><input type="email" name="customer_email" required></div>' +
+            '</div>' +
+            '<div class="fg" style="margin-bottom:14px"><label>' + t('contactMsg') + ' *</label><textarea name="message" rows="5" required></textarea></div>' +
+            '<button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">' + t('contactSend') + '</button>' +
+            '<div id="contactMsg" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(0,137,123,.08);border:1px solid rgba(0,137,123,.2);border-radius:8px;color:#00897B;font-size:.88rem">' + t('contactSuccess') + '</div>' +
           '</form>' +
         '</div>' +
       '</section>';
@@ -264,289 +311,326 @@
     bindContactForm();
   }
 
-  /* ── Category Page ───────────────────────────────────── */
+  /* ── Category Page ── */
   async function renderCategory(app, slug) {
-    var cat = categories.find(function(c) { return c.slug === slug; });
+    var cat = categories.find(function (c) { return c.slug === slug; });
+    if (!cat) {
+      /* Try to load categories first if empty */
+      if (categories.length === 0) {
+        var d = await api('/api/categories');
+        if (d && d.success) { categories = d.categories || []; renderNav(); buildMobileNav(); buildFooter(); }
+        cat = categories.find(function (c) { return c.slug === slug; });
+      }
+    }
+
     var catName = cat ? cat.name : slug;
     var catDesc = cat ? (cat.description || '') : '';
-    var subCats = cat ? categories.filter(function(c) { return c.parent_id === cat.id; }) : [];
-    var breadcrumb = buildBreadcrumb(cat);
+    var subCats = cat ? categories.filter(function (c) { return c.parent_id === cat.id; }) : [];
+    var crumb = buildCrumb(cat);
 
+    /* Use slug endpoint — returns {products:[...], children:[...], ...} */
     var products = [];
-    if (cat) {
-      var data = await api('/api/categories/' + cat.id + '/products');
-      if (data && data.success) products = data.products || [];
+    var catData = null;
+    if (slug) {
+      catData = await api('/api/categories/' + encodeURIComponent(slug));
+      if (catData && catData.id) {
+        products = catData.products || [];
+        /* Also sync local sub-cats from response if available */
+        if (catData.children && catData.children.length) {
+          subCats = catData.children;
+        }
+      }
     }
 
     var subHtml = '';
     if (subCats.length > 0) {
-      subHtml = '<div class="sub-categories"><h3>Sub-categories</h3><div class="sub-cat-grid">' +
-        subCats.map(function(sc) {
+      subHtml = '<div class="sub-categories">' +
+        '<h3 style="margin-bottom:18px;font-size:1.1rem">Sub-categories</h3>' +
+        '<div class="sub-cat-grid">' +
+        subCats.map(function (sc) {
           return '<a href="/category/' + sc.slug + '" data-spa class="sub-cat-card">' +
-            (sc.image_url ? '<img src="' + sc.image_url + '" alt="' + sc.name + '">' : '') +
-            '<span>' + sc.name + '</span></a>';
+            (sc.image_url ? '<img src="' + esc(sc.image_url) + '" alt="' + esc(sc.name) + '">' : '<div class="sub-cat-icon">&#128300;</div>') +
+            '<span>' + esc(sc.name) + '</span></a>';
         }).join('') +
         '</div></div>';
     }
 
-    var productsHtml = '';
+    var tableHtml = '';
     if (products.length > 0) {
-      var rows = products.map(function(p, i) {
-        return '<tr><td>' + (i+1) + '</td>' +
-          '<td><span class="brand-badge">' + (p.brand || '-') + '</span></td>' +
-          '<td class="code-cell">' + (p.stock_code || '-') + '</td>' +
-          '<td>' + (p.stock_name || '-') + '</td>' +
-          '<td class="purpose-cell">' + (p.purpose || '-') + '</td>' +
-          '<td><button class="btn btn-sm btn-inquiry" onclick="window.__openInquiry(\'' + escHtml(p.stock_name) + '\',\'' + escHtml(p.stock_code) + '\')">Inquire</button></td>' +
+      var rows = products.map(function (p, i) {
+        return '<tr>' +
+          '<td style="color:#888;font-size:.8rem">' + (i + 1) + '</td>' +
+          '<td><span class="brand-badge">' + esc(p.brand || '-') + '</span></td>' +
+          '<td style="font-family:monospace;font-size:.82rem;color:#5A7184">' + esc(p.stock_code || '-') + '</td>' +
+          '<td style="font-weight:500">' + esc(p.stock_name || '-') + '</td>' +
+          '<td style="color:#5A7184;font-size:.85rem">' + esc(p.purpose || '-') + '</td>' +
+          '<td><button class="btn-inq" onclick="window.__openInquiry(\'' + esc(p.stock_name) + '\',\'' + esc(p.stock_code) + '\')">Inquire</button></td>' +
           '</tr>';
       }).join('');
-      productsHtml = '<div class="products-section">' +
-        '<h3>Products <span class="count-badge">' + products.length + '</span></h3>' +
+      tableHtml = '<div class="products-section">' +
+        '<h3 style="margin-bottom:16px;font-size:1.1rem">Products <span class="count-badge">' + products.length + '</span></h3>' +
         '<div class="table-wrapper"><table class="products-table">' +
-        '<thead><tr><th>#</th><th>' + t('brand') + '</th><th>' + t('stockCode') + '</th><th>' + t('stockName') + '</th><th>' + t('purpose') + '</th><th>Inquiry</th></tr></thead>' +
+        '<thead><tr><th>#</th><th>' + t('brand') + '</th><th>' + t('stockCode') + '</th><th>' + t('stockName') + '</th><th>' + t('purpose') + '</th><th></th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table></div></div>';
     } else if (subCats.length === 0) {
-      productsHtml = '<p class="no-products">' + t('noProducts') + '</p>';
+      tableHtml = '<p class="no-products">' + t('noProducts') + '</p>';
     }
 
     app.innerHTML =
-      '<div class="page-hero category-hero">' +
+      '<div class="page-hero">' +
         '<div class="container">' +
-          '<nav class="breadcrumb">' + breadcrumb + '</nav>' +
-          '<h1>' + catName + '</h1>' +
-          (catDesc ? '<p>' + catDesc + '</p>' : '') +
+          '<nav class="breadcrumb">' + crumb + '</nav>' +
+          '<h1 style="font-size:clamp(1.8rem,4vw,2.8rem);color:#fff;margin:10px 0 10px">' + esc(catName) + '</h1>' +
+          (catDesc ? '<p style="color:rgba(255,255,255,.7);font-size:1rem">' + esc(catDesc) + '</p>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="container category-body">' + subHtml + productsHtml + '</div>';
+      '<div class="container" style="padding-top:52px;padding-bottom:80px">' +
+        subHtml + tableHtml +
+      '</div>';
   }
 
-  function buildBreadcrumb(cat) {
-    if (!cat) return '<a href="/" data-spa>Home</a>';
-    var crumbs = [];
+  function buildCrumb(cat) {
+    var parts = ['<a href="/" data-spa style="color:rgba(255,255,255,.6)">Home</a>'];
+    var chain = [];
     var cur = cat;
     while (cur) {
-      crumbs.unshift('<a href="/category/' + cur.slug + '" data-spa>' + cur.name + '</a>');
-      cur = categories.find(function(c) { return c.id === cur.parent_id; });
+      chain.unshift(cur);
+      cur = categories.find(function (c) { return c.id === cur.parent_id; });
     }
-    return '<a href="/" data-spa>Home</a> \u203a ' + crumbs.join(' \u203a ');
+    chain.forEach(function (c) {
+      parts.push('<a href="/category/' + c.slug + '" data-spa style="color:rgba(255,255,255,.6)">' + esc(c.name) + '</a>');
+    });
+    return parts.join(' <span style="color:rgba(255,255,255,.3)">&rsaquo;</span> ');
   }
 
-  /* ── Sterility Verify Page ───────────────────────────── */
+  /* ── Verify Page ── */
   function renderVerify(app) {
     app.innerHTML =
-      '<div class="page-hero verify-hero">' +
+      '<div class="page-hero">' +
         '<div class="container">' +
-          '<h1>' + t('verifyTitle') + '</h1>' +
-          '<p>Enter your sterility code to check product certification status.</p>' +
+          '<h1 style="font-size:clamp(1.8rem,4vw,2.6rem);color:#fff;margin-bottom:10px">' + t('verifyTitle') + '</h1>' +
+          '<p style="color:rgba(255,255,255,.7)">Enter your sterility code to check product certification status.</p>' +
         '</div>' +
       '</div>' +
-      '<div class="container verify-body">' +
+      '<div class="container" style="padding-top:52px;padding-bottom:80px">' +
         '<div class="verify-card">' +
-          '<div class="verify-input-group">' +
+          '<div class="verify-search">' +
             '<input type="text" id="verifyInput" placeholder="' + t('verifyPlaceholder') + '" class="verify-input">' +
             '<button class="btn btn-primary" onclick="window.__doVerify()">' + t('verifyBtn') + '</button>' +
           '</div>' +
           '<div id="verifyResult"></div>' +
         '</div>' +
-        '<div class="verify-info">' +
+        '<div class="verify-info-box">' +
           '<h3>About Sterility Verification</h3>' +
           '<p>Each certificate carries a unique code in the format <code>INN-STERI-YYYY-XXXXXXXX</code>.</p>' +
-          '<ul>' +
-            '<li>Codes are generated at time of invoice</li>' +
-            '<li>Each code is unique and tied to a specific batch</li>' +
-            '<li>Verification is available 24/7 online</li>' +
-          '</ul>' +
+          '<ul><li>Codes are generated at time of invoice</li><li>Each code is tied to a specific product batch</li><li>Verification available 24/7</li></ul>' +
         '</div>' +
       '</div>';
 
-    var input = document.getElementById('verifyInput');
-    if (input) input.addEventListener('keydown', function(e) { if (e.key === 'Enter') window.__doVerify(); });
+    var inp = document.getElementById('verifyInput');
+    if (inp) inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') window.__doVerify(); });
   }
 
-  window.__doVerify = async function() {
-    var input = document.getElementById('verifyInput');
-    var result = document.getElementById('verifyResult');
-    if (!input || !result) return;
-    var code = input.value.trim().toUpperCase();
+  window.__doVerify = async function () {
+    var inp = document.getElementById('verifyInput');
+    var res = document.getElementById('verifyResult');
+    if (!inp || !res) return;
+    var code = inp.value.trim().toUpperCase();
     if (!code) return;
-    result.innerHTML = '<div class="verify-loading"><div class="spinner"></div></div>';
+    res.innerHTML = '<div style="text-align:center;padding:24px"><div class="spinner" style="margin:0 auto"></div></div>';
     var data = await api('/api/sterility/verify/' + encodeURIComponent(code));
-    if (data && data.success && data.code) {
-      var c = data.code;
-      result.innerHTML =
-        '<div class="verify-success">' +
-          '<div class="verify-status valid"><span class="status-icon">\u2713</span> ' + t('codeValid') + '</div>' +
-          '<div class="verify-details">' +
-            '<div class="detail-row"><strong>' + t('productName') + ':</strong><span>' + (c.product_name || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('catalogNo') + ':</strong><span>' + (c.catalog_no || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('batchNo') + ':</strong><span>' + (c.batch_no || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('customer') + ':</strong><span>' + (c.customer_name || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('company') + ':</strong><span>' + (c.customer_company || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('invoiceDate') + ':</strong><span>' + (c.invoice_date || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('mfgDate') + ':</strong><span>' + (c.manufacture_date || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('expDate') + ':</strong><span>' + (c.expiry_date || '-') + '</span></div>' +
-            '<div class="detail-row"><strong>' + t('result') + ':</strong><span class="result-badge ' + (c.test_result||'pass').toLowerCase() + '">' + (c.test_result || 'PASS') + '</span></div>' +
+    if (data && data.valid) {
+      var c = data; /* record is spread into response */
+      res.innerHTML =
+        '<div class="verify-result valid">' +
+          '<div class="vr-status ok"><span>&#10003;</span> ' + t('codeValid') + '</div>' +
+          '<div class="vr-table">' +
+            vrow('Product', c.product_name) +
+            vrow('Catalog No', c.catalog_no) +
+            vrow('Batch No', c.batch_no) +
+            vrow('Customer', c.customer_name) +
+            vrow('Company', c.customer_company) +
+            vrow('Invoice Date', c.invoice_date) +
+            vrow('Manufacture Date', c.manufacture_date) +
+            vrow('Expiry Date', c.expiry_date) +
+            vrow('Test Result', '<span class="res-' + (c.test_result||'pass').toLowerCase() + '">' + (c.test_result||'PASS') + '</span>') +
           '</div>' +
-          (c.notes ? '<div class="verify-notes"><strong>Notes:</strong> ' + c.notes + '</div>' : '') +
+          (c.notes ? '<div style="margin-top:14px;padding:12px;background:#f5f9fc;border-radius:8px;font-size:.87rem;color:#5A7184"><strong>Notes:</strong> ' + esc(c.notes) + '</div>' : '') +
         '</div>';
     } else {
-      result.innerHTML =
-        '<div class="verify-fail">' +
-          '<div class="verify-status invalid"><span class="status-icon">\u2717</span> ' + t('codeInvalid') + '</div>' +
-          '<p>The code <strong>' + escHtml(code) + '</strong> was not found. Please check and try again.</p>' +
+      res.innerHTML =
+        '<div class="verify-result invalid">' +
+          '<div class="vr-status fail"><span>&#10007;</span> ' + t('codeInvalid') + '</div>' +
+          '<p style="color:#5A7184;margin-top:10px">The code <strong>' + esc(code) + '</strong> was not found. Please check and try again.</p>' +
         '</div>';
     }
   };
 
-  /* ── Inquiry Modal ───────────────────────────────────── */
-  window.__openInquiry = function(productName, stockCode) {
+  function vrow(label, val) {
+    return '<div class="vr-row"><strong>' + label + '</strong><span>' + (val || '-') + '</span></div>';
+  }
+
+  /* ── Inquiry Modal ── */
+  window.__openInquiry = function (name, code) {
     var modal = document.getElementById('inquiryModal');
-    if (!modal) return;
-    var nameEl = document.getElementById('modalProductName');
-    if (nameEl) nameEl.textContent = productName + (stockCode ? ' (' + stockCode + ')' : '');
-    var hiddenName = document.getElementById('inqProductName');
-    if (hiddenName) hiddenName.value = productName + (stockCode ? ' (' + stockCode + ')' : '');
-    modal.classList.remove('hidden');
+    var el = document.getElementById('modalProductName');
+    if (el) el.textContent = name + (code ? ' (' + code + ')' : '');
+    if (modal) modal.style.display = 'flex';
   };
 
   function initInquiryModal() {
     var modal = document.getElementById('inquiryModal');
-    if (!modal) return;
-    var closeBtn = document.getElementById('modalClose');
+    var close = document.getElementById('modalClose');
     var form = document.getElementById('inquiryForm');
-    if (closeBtn) closeBtn.addEventListener('click', function() { modal.classList.add('hidden'); });
-    modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.add('hidden'); });
+    if (close) close.addEventListener('click', function () { modal.style.display = 'none'; });
+    if (modal) modal.addEventListener('click', function (e) { if (e.target === modal) modal.style.display = 'none'; });
     if (form) {
-      form.addEventListener('submit', async function(e) {
+      form.addEventListener('submit', async function (e) {
         e.preventDefault();
-        var data = Object.fromEntries(new FormData(form));
-        var productInfo = document.getElementById('modalProductName') ? document.getElementById('modalProductName').textContent : '';
+        var fd = new FormData(form);
+        var productLabel = document.getElementById('modalProductName') ? document.getElementById('modalProductName').textContent : '';
         try {
           await fetch('/api/inquiries', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.customer_name, email: data.customer_email, message: 'Product: ' + productInfo + '\n' + data.message, type: 'product' })
+            body: JSON.stringify({
+              customer_name: fd.get('customer_name'),
+              customer_email: fd.get('customer_email'),
+              message: 'Product: ' + productLabel + '\n' + fd.get('message'),
+              subject: 'Product Inquiry'
+            })
           });
           form.reset();
-          var msg = document.getElementById('inqOk');
-          if (msg) { msg.classList.remove('hidden'); setTimeout(function() { msg.classList.add('hidden'); modal.classList.add('hidden'); }, 3000); }
-        } catch(err) { /* silent */ }
+          var ok = document.getElementById('inqOk');
+          if (ok) {
+            ok.style.display = 'block';
+            setTimeout(function () { ok.style.display = 'none'; modal.style.display = 'none'; }, 3000);
+          }
+        } catch (err) { /* silent */ }
       });
     }
   }
 
-  /* ── Contact Form ────────────────────────────────────── */
+  /* ── Contact Form ── */
   function bindContactForm() {
     var form = document.getElementById('contactForm');
     if (!form) return;
-    form.addEventListener('submit', async function(e) {
+    form.addEventListener('submit', async function (e) {
       e.preventDefault();
-      var data = Object.fromEntries(new FormData(form));
+      var fd = new FormData(form);
       try {
         var r = await fetch('/api/inquiries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: data.name, email: data.email, message: data.message, type: 'contact' })
+          body: JSON.stringify({
+            customer_name: fd.get('customer_name'),
+            customer_email: fd.get('customer_email'),
+            message: fd.get('message'),
+            subject: 'Contact Form'
+          })
         });
         if (r.ok) {
           form.reset();
           var msg = document.getElementById('contactMsg');
-          if (msg) { msg.style.display = 'block'; setTimeout(function() { msg.style.display = 'none'; }, 5000); }
+          if (msg) { msg.style.display = 'block'; setTimeout(function () { msg.style.display = 'none'; }, 5000); }
         }
-      } catch(err) { /* silent */ }
+      } catch (err) { /* silent */ }
     });
   }
 
-  /* ── Language Toggle ─────────────────────────────────── */
-  window.__toggleLang = function() {
+  /* ── Language Toggle ── */
+  window.__toggleLang = function () {
     lang = lang === 'en' ? 'tr' : 'en';
     localStorage.setItem('lang', lang);
     buildNav();
-    navigate(location.pathname, false);
+    buildMobileNav();
     buildFooter();
+    navigate(location.pathname, false);
   };
 
-  /* ── Footer ──────────────────────────────────────────── */
+  /* ── Footer ── */
   function buildFooter() {
     var footer = document.getElementById('siteFooter');
     if (!footer) return;
-    var roots = categories.filter(function(c) { return !c.parent_id; });
+    var roots = categories.filter(function (c) { return !c.parent_id; });
     var c = siteContent;
 
     footer.innerHTML =
-      '<div class="footer-inner container">' +
+      '<div class="footer-main container">' +
         '<div class="footer-brand">' +
-          '<img src="/uploads/logo.png" alt="Innomed" onerror="this.style.display=\'none\'" style="height:40px;margin-bottom:8px">' +
-          '<strong>Innomed Life Sciences</strong>' +
-          '<p>Advanced diagnostic and microbiological solutions.</p>' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+            '<svg width="32" height="32" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#0A5C8A"/><path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="10" r="2.8" fill="#26C6DA"/></svg>' +
+            '<strong style="font-size:1.05rem;color:#fff;font-family:Sora,sans-serif">INNOMED</strong>' +
+          '</div>' +
+          '<p style="font-size:.85rem;color:rgba(255,255,255,.45);line-height:1.7">Advanced diagnostic and<br>microbiological solutions.</p>' +
         '</div>' +
-        '<div class="footer-links">' +
+        '<div class="footer-col">' +
           '<strong>Products</strong>' +
-          '<ul>' + roots.slice(0,7).map(function(cat) {
-            return '<li><a href="/category/' + cat.slug + '" data-spa>' + cat.name + '</a></li>';
+          '<ul>' + roots.slice(0, 7).map(function (cat) {
+            return '<li><a href="/category/' + cat.slug + '" data-spa>' + esc(cat.name) + '</a></li>';
           }).join('') + '</ul>' +
         '</div>' +
-        '<div class="footer-links">' +
+        '<div class="footer-col">' +
           '<strong>Company</strong>' +
           '<ul>' +
-            '<li><a href="/#about">About Us</a></li>' +
+            '<li><a href="/#about" data-spa>About Us</a></li>' +
             '<li><a href="/verify" data-spa>Sterility Verify</a></li>' +
-            '<li><a href="/#contact">Contact</a></li>' +
-            '<li><a href="/admin/">Admin</a></li>' +
+            '<li><a href="/#contact" data-spa>Contact</a></li>' +
           '</ul>' +
         '</div>' +
-        '<div class="footer-contact">' +
+        '<div class="footer-col">' +
           '<strong>Contact</strong>' +
           '<p>' + ((c.contact && c.contact.address) || 'Istanbul, Turkey') + '</p>' +
           '<p>' + ((c.contact && c.contact.phone) || '') + '</p>' +
           '<p>' + ((c.contact && c.contact.email) || '') + '</p>' +
         '</div>' +
       '</div>' +
-      '<div class="footer-bottom"><div class="container">' +
-        '<span>\u00a9 ' + new Date().getFullYear() + ' Innomed Life Sciences. ' + t('allRights') + '</span>' +
-      '</div></div>';
+      '<div class="footer-bottom">' +
+        '<div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+          '<span style="font-size:.8rem;color:rgba(255,255,255,.3)">&copy; ' + new Date().getFullYear() + ' Innomed Life Sciences. ' + t('allRights') + '</span>' +
+          '<a href="/admin/" style="font-size:.78rem;color:rgba(255,255,255,.3);transition:.2s" onmouseover="this.style.color=\'#26C6DA\'" onmouseout="this.style.color=\'rgba(255,255,255,.3)\'">Admin Panel</a>' +
+        '</div>' +
+      '</div>';
   }
 
-  /* ── Scroll Effects ──────────────────────────────────── */
-  function initScrollEffects() {
+  /* ── Scroll / Back-to-top ── */
+  function initScroll() {
     var btn = document.getElementById('backTop');
-    var navbar = document.querySelector('.navbar');
-    window.addEventListener('scroll', function() {
-      if (btn) { btn.classList.toggle('show', window.scrollY > 400); btn.classList.toggle('visible', window.scrollY > 400); }
-      if (navbar) navbar.classList.toggle('scrolled', window.scrollY > 50);
+    var navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', function () {
+      if (btn) btn.classList.toggle('visible', window.scrollY > 400);
+      if (navbar) navbar.classList.toggle('scrolled', window.scrollY > 60);
     });
-    if (btn) btn.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    if (btn) btn.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   }
 
-  /* ── Mobile Nav ──────────────────────────────────────── */
+  /* ── Mobile Nav ── */
   function initMobileNav() {
     var toggle = document.getElementById('hamburger');
-    var overlay = document.getElementById('mobileNav');
-    if (toggle && overlay) {
-      toggle.addEventListener('click', function() { overlay.classList.toggle('hidden'); });
-    }
-    if (overlay) {
-      overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.add('hidden'); });
-    }
+    var drawer = document.getElementById('mobileDrawer');
+    var close = document.getElementById('drawerClose');
+    if (toggle && drawer) toggle.addEventListener('click', function () { drawer.classList.toggle('open'); });
+    if (close && drawer) close.addEventListener('click', function () { drawer.classList.remove('open'); });
+    if (drawer) drawer.addEventListener('click', function (e) { if (e.target === drawer) drawer.classList.remove('open'); });
   }
 
-  /* ── Load Content ────────────────────────────────────── */
+  /* ── Load Content ── */
   async function loadContent() {
-    var data = await api('/api/content');
-    if (data && data.success) siteContent = data.content || {};
+    var d = await api('/api/content');
+    if (d && typeof d === 'object' && !Array.isArray(d) && !d.error) siteContent = d;
   }
 
-  /* ── Util ────────────────────────────────────────────── */
-  function escHtml(s) {
+  /* ── Utility ── */
+  function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /* ── Init ────────────────────────────────────────────── */
+  /* ── Init ── */
   async function init() {
     await Promise.all([loadContent(), buildNav()]);
     buildFooter();
     navigate(location.pathname, false);
-    initScrollEffects();
+    initScroll();
     initInquiryModal();
     initMobileNav();
   }
