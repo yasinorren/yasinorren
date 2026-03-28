@@ -3,7 +3,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../database/db');
 
-const SECRET = () => process.env.JWT_SECRET || 'innomed_secret';
+const SECRET = () => {
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET environment variable is not set');
+  return process.env.JWT_SECRET;
+};
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {

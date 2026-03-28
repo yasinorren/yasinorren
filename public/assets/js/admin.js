@@ -177,10 +177,10 @@ async function renderDashboard() {
   const inqs = await api('/api/inquiries?status=new');
   const tbody = (inqs || []).slice(0, 5).map(i => `
     <tr>
-      <td><strong>${i.customer_name}</strong></td>
-      <td>${i.product_name || '—'}</td>
-      <td>${i.company || '—'}</td>
-      <td><span class="badge badge-${i.status}">${statusTr(i.status)}</span></td>
+      <td><strong>${escHtml(i.customer_name)}</strong></td>
+      <td>${escHtml(i.product_name || '—')}</td>
+      <td>${escHtml(i.company || '—')}</td>
+      <td><span class="badge badge-${escHtml(i.status)}">${statusTr(i.status)}</span></td>
       <td>${new Date(i.created_at).toLocaleDateString('tr-TR')}</td>
       <td><button class="btn-sm btn-view" onclick="openInqModal(${i.id})">Görüntüle</button></td>
     </tr>`).join('');
@@ -235,15 +235,15 @@ function renderProductTable(products) {
   if (!products.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>Ürün bulunamadı.</p></div></td></tr>'; return; }
   tbody.innerHTML = products.map(p => `
     <tr>
-      <td><code style="font-size:.78rem;color:var(--muted)">${p.catalog_no||'—'}</code></td>
-      <td><strong>${p.name_tr}</strong>${p.is_featured?'&nbsp;<span class="badge badge-featured">Öne Çıkan</span>':''}</td>
-      <td>${catLabel[p.category]||p.category}</td>
-      <td>${p.format||'—'}</td>
-      <td>${p.stock_qty}</td>
-      <td><span class="badge badge-${p.stock_status}">${stockTr(p.stock_status)}</span></td>
+      <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.catalog_no||'—')}</code></td>
+      <td><strong>${escHtml(p.name_tr)}</strong>${p.is_featured?'&nbsp;<span class="badge badge-featured">Öne Çıkan</span>':''}</td>
+      <td>${escHtml(catLabel[p.category]||p.category)}</td>
+      <td>${escHtml(p.format||'—')}</td>
+      <td>${parseInt(p.stock_qty)||0}</td>
+      <td><span class="badge badge-${escHtml(p.stock_status)}">${stockTr(p.stock_status)}</span></td>
       <td style="display:flex;gap:6px">
         <button class="btn-sm btn-edit" onclick="openProductModal(${p.id})">Düzenle</button>
-        <button class="btn-sm btn-del" onclick="deleteProduct(${p.id},'${p.name_tr.replace(/'/g,"\\'")}')">Sil</button>
+        <button class="btn-sm btn-del" onclick="deleteProduct(${p.id})">Sil</button>
       </td>
     </tr>`).join('');
 }
@@ -312,7 +312,9 @@ document.getElementById('productForm').addEventListener('submit', async e => {
   } else toast(res?.error || 'Hata oluştu', 'err');
 });
 
-async function deleteProduct(id, name) {
+async function deleteProduct(id) {
+  const product = allProducts.find(p => p.id === id);
+  const name = product ? product.name_tr : 'bu ürünü';
   if (!confirm(`"${name}" ürününü silmek istediğinizden emin misiniz?`)) return;
   const res = await api(`/api/products/${id}`, { method: 'DELETE' });
   if (res && !res.error) { toast('Ürün silindi'); renderProducts(); }
@@ -353,11 +355,11 @@ function renderInqTable(inqs) {
   tbody.innerHTML = inqs.map(i => `
     <tr>
       <td style="color:var(--muted);font-size:.78rem">#${i.id}</td>
-      <td><strong>${i.customer_name}</strong><br/><small style="color:var(--muted)">${i.customer_email||''}</small></td>
-      <td>${i.company||'—'}</td>
-      <td>${i.product_name||'—'}</td>
-      <td>${i.subject||'—'}</td>
-      <td><span class="badge badge-${i.status}">${statusTr(i.status)}</span></td>
+      <td><strong>${escHtml(i.customer_name)}</strong><br/><small style="color:var(--muted)">${escHtml(i.customer_email||'')}</small></td>
+      <td>${escHtml(i.company||'—')}</td>
+      <td>${escHtml(i.product_name||'—')}</td>
+      <td>${escHtml(i.subject||'—')}</td>
+      <td><span class="badge badge-${escHtml(i.status)}">${statusTr(i.status)}</span></td>
       <td style="font-size:.8rem;color:var(--muted)">${new Date(i.created_at).toLocaleDateString('tr-TR')}</td>
       <td><button class="btn-sm btn-view" onclick="openInqModal(${i.id})">Detay</button></td>
     </tr>`).join('');
@@ -372,13 +374,13 @@ async function openInqModal(id) {
   document.getElementById('imStatus').value = inq.status;
   document.getElementById('imNotes').value  = inq.admin_notes || '';
   document.getElementById('inqDetail').innerHTML = `
-    <div class="inq-row"><span class="inq-label">Müşteri:</span><span class="inq-val">${inq.customer_name}</span></div>
-    <div class="inq-row"><span class="inq-label">E-posta:</span><span class="inq-val">${inq.customer_email||'—'}</span></div>
-    <div class="inq-row"><span class="inq-label">Telefon:</span><span class="inq-val">${inq.customer_phone||'—'}</span></div>
-    <div class="inq-row"><span class="inq-label">Şirket:</span><span class="inq-val">${inq.company||'—'}</span></div>
-    <div class="inq-row"><span class="inq-label">Ürün:</span><span class="inq-val">${inq.product_name||'—'}</span></div>
-    <div class="inq-row"><span class="inq-label">Konu:</span><span class="inq-val">${inq.subject||'—'}</span></div>
-    <div class="inq-row"><span class="inq-label">Mesaj:</span><span class="inq-val">${inq.message}</span></div>
+    <div class="inq-row"><span class="inq-label">Müşteri:</span><span class="inq-val">${escHtml(inq.customer_name)}</span></div>
+    <div class="inq-row"><span class="inq-label">E-posta:</span><span class="inq-val">${escHtml(inq.customer_email||'—')}</span></div>
+    <div class="inq-row"><span class="inq-label">Telefon:</span><span class="inq-val">${escHtml(inq.customer_phone||'—')}</span></div>
+    <div class="inq-row"><span class="inq-label">Şirket:</span><span class="inq-val">${escHtml(inq.company||'—')}</span></div>
+    <div class="inq-row"><span class="inq-label">Ürün:</span><span class="inq-val">${escHtml(inq.product_name||'—')}</span></div>
+    <div class="inq-row"><span class="inq-label">Konu:</span><span class="inq-val">${escHtml(inq.subject||'—')}</span></div>
+    <div class="inq-row"><span class="inq-label">Mesaj:</span><span class="inq-val">${escHtml(inq.message)}</span></div>
     <div class="inq-row"><span class="inq-label">Tarih:</span><span class="inq-val">${new Date(inq.created_at).toLocaleString('tr-TR')}</span></div>`;
 
   document.getElementById('inqModal').classList.remove('hidden');
@@ -472,13 +474,13 @@ function renderSaleTable(sales) {
   tbody.innerHTML = sales.map(s => `
     <tr>
       <td style="color:var(--muted);font-size:.78rem">#${s.id}</td>
-      <td><strong>${s.product_name}</strong>${s.catalog_no?`<br/><code style="font-size:.72rem;color:var(--muted)">${s.catalog_no}</code>`:''}</td>
+      <td><strong>${escHtml(s.product_name)}</strong>${s.catalog_no?`<br/><code style="font-size:.72rem;color:var(--muted)">${escHtml(s.catalog_no)}</code>`:''}</td>
       <td>${s.quantity}</td>
-      <td>${s.unit_price ? `${s.currency} ${s.unit_price}` : '—'}</td>
-      <td><strong>${s.total_price ? `${s.currency} ${parseFloat(s.total_price).toFixed(2)}` : '—'}</strong></td>
-      <td>${s.customer_name||'—'}${s.customer_company?`<br/><small style="color:var(--muted)">${s.customer_company}</small>`:''}</td>
-      <td>${s.country||'—'}</td>
-      <td style="font-size:.8rem;color:var(--muted)">${s.sale_date||'—'}</td>
+      <td>${s.unit_price ? `${escHtml(s.currency)} ${parseFloat(s.unit_price).toFixed(2)}` : '—'}</td>
+      <td><strong>${s.total_price ? `${escHtml(s.currency)} ${parseFloat(s.total_price).toFixed(2)}` : '—'}</strong></td>
+      <td>${escHtml(s.customer_name||'—')}${s.customer_company?`<br/><small style="color:var(--muted)">${escHtml(s.customer_company)}</small>`:''}</td>
+      <td>${escHtml(s.country||'—')}</td>
+      <td style="font-size:.8rem;color:var(--muted)">${escHtml(s.sale_date||'—')}</td>
       <td><button class="btn-sm btn-del" onclick="deleteSale(${s.id})">Sil</button></td>
     </tr>`).join('');
 }
@@ -487,7 +489,7 @@ async function openSaleModal() {
   // Populate product selector
   const sel = document.getElementById('smProductSel');
   sel.innerHTML = '<option value="">Manuel giriş</option>' +
-    (allProducts.length ? allProducts.map(p => `<option value="${p.id}" data-name="${p.name_tr}" data-cat="${p.catalog_no||''}">${p.name_tr}${p.catalog_no?' ('+p.catalog_no+')':''}</option>`).join('') : '');
+    (allProducts.length ? allProducts.map(p => `<option value="${p.id}" data-name="${escHtml(p.name_tr)}" data-cat="${escHtml(p.catalog_no||'')}">${escHtml(p.name_tr)}${p.catalog_no?' ('+escHtml(p.catalog_no)+')':''}</option>`).join('') : '');
 
   sel.onchange = () => {
     const opt = sel.selectedOptions[0];
@@ -847,7 +849,7 @@ async function renderMedia() {
   const body = document.getElementById('contentBody');
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
-  const data = await api('/api/upload/list');
+  const data = await api('/api/upload');
   const files = Array.isArray(data) ? data : [];
 
   body.innerHTML = `
@@ -873,14 +875,14 @@ async function renderMedia() {
         ${files.length === 0 ? '<p style="color:#888;padding:24px">No files uploaded yet.</p>' :
           files.map(f => `
             <div class="media-item">
-              <img src="${f.url}" alt="${f.name}" onerror="this.src='/admin/img-error.png'" loading="lazy">
+              <img src="${escHtml(f.url)}" alt="${escHtml(f.filename)}" onerror="this.style.display='none'" loading="lazy">
               <div class="media-info">
-                <span class="media-name">${f.name}</span>
+                <span class="media-name">${escHtml(f.filename)}</span>
                 <span class="media-size">${(f.size/1024).toFixed(1)} KB</span>
               </div>
               <div class="media-actions">
-                <button class="btn-sm" onclick="copyUrl('${f.url}')">Copy URL</button>
-                <button class="btn-sm btn-del" onclick="deleteFile('${f.filename}')">Delete</button>
+                <button class="btn-sm" onclick="copyUrl('${escHtml(f.url)}')">URL Kopyala</button>
+                <button class="btn-sm btn-del" onclick="deleteFile('${escHtml(f.filename)}')">Sil</button>
               </div>
             </div>
           `).join('')

@@ -490,23 +490,31 @@
         var fd = new FormData(form);
         var productLabel = document.getElementById('modalProductName') ? document.getElementById('modalProductName').textContent : '';
         try {
-          await fetch('/api/inquiries', {
+          var r = await fetch('/api/inquiries', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              customer_name: fd.get('customer_name'),
-              customer_email: fd.get('customer_email'),
-              message: 'Product: ' + productLabel + '\n' + fd.get('message'),
+              customer_name: String(fd.get('customer_name') || '').slice(0, 200),
+              customer_email: String(fd.get('customer_email') || '').slice(0, 200),
+              message: ('Product: ' + productLabel + '\n' + String(fd.get('message') || '')).slice(0, 2000),
               subject: 'Product Inquiry'
             })
           });
-          form.reset();
-          var ok = document.getElementById('inqOk');
-          if (ok) {
-            ok.style.display = 'block';
-            setTimeout(function () { ok.style.display = 'none'; modal.style.display = 'none'; }, 3000);
+          if (r.ok) {
+            form.reset();
+            var ok = document.getElementById('inqOk');
+            if (ok) {
+              ok.style.display = 'block';
+              setTimeout(function () { ok.style.display = 'none'; modal.style.display = 'none'; }, 3000);
+            }
+          } else {
+            var errEl = document.getElementById('inqErr');
+            if (errEl) { errEl.style.display = 'block'; setTimeout(function () { errEl.style.display = 'none'; }, 4000); }
           }
-        } catch (err) { /* silent */ }
+        } catch (err) {
+          var errEl2 = document.getElementById('inqErr');
+          if (errEl2) { errEl2.style.display = 'block'; setTimeout(function () { errEl2.style.display = 'none'; }, 4000); }
+        }
       });
     }
   }
@@ -523,18 +531,24 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_name: fd.get('customer_name'),
-            customer_email: fd.get('customer_email'),
-            message: fd.get('message'),
+            customer_name: String(fd.get('customer_name') || '').slice(0, 200),
+            customer_email: String(fd.get('customer_email') || '').slice(0, 200),
+            message: String(fd.get('message') || '').slice(0, 2000),
             subject: 'Contact Form'
           })
         });
+        var msg = document.getElementById('contactMsg');
+        var msgErr = document.getElementById('contactMsgErr');
         if (r.ok) {
           form.reset();
-          var msg = document.getElementById('contactMsg');
           if (msg) { msg.style.display = 'block'; setTimeout(function () { msg.style.display = 'none'; }, 5000); }
+        } else {
+          if (msgErr) { msgErr.style.display = 'block'; setTimeout(function () { msgErr.style.display = 'none'; }, 5000); }
         }
-      } catch (err) { /* silent */ }
+      } catch (err) {
+        var msgErr2 = document.getElementById('contactMsgErr');
+        if (msgErr2) { msgErr2.style.display = 'block'; setTimeout(function () { msgErr2.style.display = 'none'; }, 5000); }
+      }
     });
   }
 
