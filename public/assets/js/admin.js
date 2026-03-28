@@ -6,13 +6,18 @@ let authToken  = localStorage.getItem('innomed_token') || '';
 let allProducts = [];
 
 const api = async (url, opts = {}) => {
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: 'Bearer ' + authToken } : {}) },
-    ...opts,
-    body: opts.body ? JSON.stringify(opts.body) : undefined
-  });
-  if (res.status === 401) { logout(); return null; }
-  return res.json();
+  try {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: 'Bearer ' + authToken } : {}) },
+      ...opts,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    if (res.status === 401) { logout(); return null; }
+    return await res.json();
+  } catch (e) {
+    console.error('API error:', url, e.message);
+    return null;
+  }
 };
 
 /* ── Toast ── */
@@ -78,11 +83,15 @@ document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar
 
 /* ── Navigation ── */
 let currentPage = 'dashboard';
+let appInitialized = false;
 
 function initApp() {
-  document.querySelectorAll('.sb-item').forEach(btn => {
-    btn.addEventListener('click', () => navigateTo(btn.dataset.page));
-  });
+  if (!appInitialized) {
+    document.querySelectorAll('.sb-item').forEach(btn => {
+      btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+    });
+    appInitialized = true;
+  }
   navigateTo('dashboard');
   loadInquiryBadge();
 }
@@ -274,6 +283,7 @@ function openProductModal(id = null) {
     document.getElementById('pmStockStatus').value = p.stock_status || 'available';
     document.getElementById('pmStockQty').value    = p.stock_qty || 0;
     document.getElementById('pmFeatured').checked  = !!p.is_featured;
+    document.getElementById('pmImageUrl').value    = p.image_url || '';
   }
   modal.classList.remove('hidden');
 }
@@ -299,6 +309,7 @@ document.getElementById('productForm').addEventListener('submit', async e => {
     stock_status: document.getElementById('pmStockStatus').value,
     stock_qty:    document.getElementById('pmStockQty').value,
     is_featured:  document.getElementById('pmFeatured').checked,
+    image_url:    document.getElementById('pmImageUrl').value,
     is_active:    1
   };
   const btn = e.target.querySelector('[type=submit]');
@@ -599,14 +610,15 @@ async function renderCategories() {
       const indent = '&nbsp;'.repeat(level * 4);
       const children = buildTree(cats, c.id, level + 1);
       return `<tr>
-        <td>${indent}<strong>${c.name}</strong></td>
-        <td><code>${c.slug}</code></td>
-        <td>${c.description ? c.description.substring(0,60) + '...' : '-'}</td>
-        <td>${c.parent_id ? (allCategories.find(x=>x.id===c.parent_id)||{}).name||'-' : '<em>Root</em>'}</td>
+        <td>${indent}<strong>${escHtml(c.name)}</strong></td>
+        <td><code>${escHtml(c.slug)}</code></td>
+        <td>${c.description ? escHtml(c.description.substring(0,60)) + '...' : '-'}</td>
+        <td>${c.parent_id ? escHtml((allCategories.find(x=>x.id===c.parent_id)||{}).name||'-') : '<em>Root</em>'}</td>
         <td>${c.is_active ? '<span class="badge badge-ok">Active</span>' : '<span class="badge badge-err">Inactive</span>'}</td>
-        <td>
+        <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn-sm btn-edit" onclick="openEditCategory(${c.id})">Edit</button>
-          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${c.name}')">Delete</button>
+          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" onclick="openCatProducts(${c.id},'${escAttr(c.name)}')">Products</button>
+          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${escAttr(c.name)}')">Delete</button>
         </td>
       </tr>` + children;
     }).join('');
@@ -707,6 +719,121 @@ async function deleteCategory(id, name) {
   const res = await api('/api/categories/' + id, { method: 'DELETE' });
   if (res && res.message && !res.error) { toast('Category deleted.'); renderCategories(); }
   else toast(res?.error || 'Failed to delete.', 'err');
+}
+
+/* ══════════════════════════════════════════════════════
+   CATEGORY PRODUCTS MANAGEMENT
+══════════════════════════════════════════════════════ */
+let currentCatProductsCatId = null;
+let catProductsCache = [];
+
+async function openCatProducts(catId, catName) {
+  currentCatProductsCatId = catId;
+  document.getElementById('catProdsTitle').textContent = 'Products: ' + catName;
+  document.getElementById('catProdsModal').classList.remove('hidden');
+  await loadCatProducts();
+}
+
+function closeCatProdsModal() {
+  document.getElementById('catProdsModal').classList.add('hidden');
+}
+
+async function loadCatProducts() {
+  const content = document.getElementById('catProdsBody');
+  content.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Yükleniyor...</div>';
+  const products = await api('/api/categories/' + currentCatProductsCatId + '/products');
+  if (!Array.isArray(products)) {
+    content.innerHTML = '<p style="padding:20px;color:#c00">Failed to load products.</p>';
+    return;
+  }
+  catProductsCache = products;
+  if (products.length === 0) {
+    content.innerHTML = '<p style="padding:24px;color:var(--muted);text-align:center">No products in this category yet. Click &ldquo;Add Product&rdquo; to get started.</p>';
+    return;
+  }
+  content.innerHTML = `
+    <div class="table-wrap" style="max-height:380px;overflow-y:auto">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>Brand</th><th>Stock Code</th><th>Stock Name</th><th>Purpose</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${products.map((p, i) => `
+            <tr>
+              <td style="color:var(--muted);font-size:.78rem">${i + 1}</td>
+              <td><span class="brand-badge" style="background:#EAF4FB;color:#0A5C8A;padding:2px 8px;border-radius:50px;font-size:.75rem">${escHtml(p.brand || '-')}</span></td>
+              <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.stock_code || '-')}</code></td>
+              <td><strong>${escHtml(p.stock_name)}</strong></td>
+              <td style="color:#5A7184;font-size:.85rem;max-width:200px">${escHtml(p.purpose || '-')}</td>
+              <td style="display:flex;gap:4px">
+                <button class="btn-sm btn-edit" onclick="openEditCatProduct(${p.id})">Edit</button>
+                <button class="btn-sm btn-del" onclick="deleteCatProduct(${p.id})">Delete</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function openAddCatProduct() {
+  document.getElementById('catProdFormTitle').textContent = 'Add Product';
+  document.getElementById('cpfId').value = '';
+  document.getElementById('cpfCatId').value = currentCatProductsCatId;
+  document.getElementById('cpfBrand').value = 'ORGAMİK';
+  document.getElementById('cpfCode').value = '';
+  document.getElementById('cpfName').value = '';
+  document.getElementById('cpfPurpose').value = '';
+  document.getElementById('cpfOrder').value = '0';
+  document.getElementById('catProdFormModal').classList.remove('hidden');
+}
+
+function openEditCatProduct(id) {
+  const p = catProductsCache.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('catProdFormTitle').textContent = 'Edit Product';
+  document.getElementById('cpfId').value = p.id;
+  document.getElementById('cpfCatId').value = currentCatProductsCatId;
+  document.getElementById('cpfBrand').value = p.brand || '';
+  document.getElementById('cpfCode').value = p.stock_code || '';
+  document.getElementById('cpfName').value = p.stock_name || '';
+  document.getElementById('cpfPurpose').value = p.purpose || '';
+  document.getElementById('cpfOrder').value = p.order_index || 0;
+  document.getElementById('catProdFormModal').classList.remove('hidden');
+}
+
+function closeCatProdForm() {
+  document.getElementById('catProdFormModal').classList.add('hidden');
+}
+
+document.getElementById('catProdForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id    = document.getElementById('cpfId').value;
+  const catId = document.getElementById('cpfCatId').value;
+  const body  = {
+    brand:       document.getElementById('cpfBrand').value,
+    stock_code:  document.getElementById('cpfCode').value,
+    stock_name:  document.getElementById('cpfName').value,
+    purpose:     document.getElementById('cpfPurpose').value,
+    order_index: parseInt(document.getElementById('cpfOrder').value) || 0
+  };
+  const btn = e.target.querySelector('[type=submit]');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const res = id
+    ? await api('/api/categories/products/' + id, { method: 'PUT', body })
+    : await api('/api/categories/' + catId + '/products', { method: 'POST', body });
+  btn.disabled = false; btn.textContent = 'Save';
+  if (res && !res.error) {
+    toast(id ? 'Product updated.' : 'Product added.');
+    closeCatProdForm();
+    await loadCatProducts();
+  } else toast(res?.error || 'Failed to save.', 'err');
+});
+
+async function deleteCatProduct(id) {
+  const p = catProductsCache.find(x => x.id === id);
+  const name = p ? p.stock_name : 'this product';
+  if (!confirm('Delete "' + name + '"?')) return;
+  const res = await api('/api/categories/products/' + id, { method: 'DELETE' });
+  if (res && !res.error) { toast('Product deleted.'); await loadCatProducts(); }
+  else toast(res?.error || 'Failed.', 'err');
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1006,4 +1133,9 @@ async function saveSection(section) {
 
 function escHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* Escape for use inside single-quoted HTML attribute values (e.g. onclick="f('...')") */
+function escAttr(s) {
+  return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }

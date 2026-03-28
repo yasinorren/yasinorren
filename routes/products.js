@@ -29,14 +29,14 @@ router.get('/:id', (req, res) => {
 // POST /api/products — admin only
 router.post('/', auth, (req, res) => {
   const { catalog_no, name_tr, name_en, category, subcategory, description_tr, description_en,
-          format, unit, price, currency, stock_status, stock_qty, is_featured } = req.body;
+          format, unit, price, currency, stock_status, stock_qty, is_featured, image_url } = req.body;
   if (!name_tr || !name_en || !category)
     return res.status(400).json({ error: 'name_tr, name_en ve category zorunludur' });
 
   const stmt = db.prepare(`
     INSERT INTO products (catalog_no, name_tr, name_en, category, subcategory, description_tr, description_en,
-      format, unit, price, currency, stock_status, stock_qty, is_featured)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      format, unit, price, currency, stock_status, stock_qty, is_featured, image_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const result = stmt.run(
     catalog_no || null, name_tr, name_en, category,
@@ -44,7 +44,7 @@ router.post('/', auth, (req, res) => {
     format || null, unit || 'adet',
     parseFloat(price) || 0, currency || 'USD',
     stock_status || 'available', parseInt(stock_qty) || 0,
-    is_featured ? 1 : 0
+    is_featured ? 1 : 0, image_url || null
   );
   res.status(201).json({ id: result.lastInsertRowid, message: 'Ürün eklendi' });
 });
@@ -52,7 +52,7 @@ router.post('/', auth, (req, res) => {
 // PUT /api/products/:id — admin only
 router.put('/:id', auth, (req, res) => {
   const { catalog_no, name_tr, name_en, category, subcategory, description_tr, description_en,
-          format, unit, price, currency, stock_status, stock_qty, is_featured, is_active } = req.body;
+          format, unit, price, currency, stock_status, stock_qty, is_featured, is_active, image_url } = req.body;
 
   const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Ürün bulunamadı' });
@@ -62,7 +62,7 @@ router.put('/:id', auth, (req, res) => {
       catalog_no = ?, name_tr = ?, name_en = ?, category = ?, subcategory = ?,
       description_tr = ?, description_en = ?, format = ?, unit = ?, price = ?,
       currency = ?, stock_status = ?, stock_qty = ?, is_featured = ?, is_active = ?,
-      updated_at = CURRENT_TIMESTAMP
+      image_url = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
     catalog_no || null, name_tr, name_en, category, subcategory || null,
@@ -70,7 +70,7 @@ router.put('/:id', auth, (req, res) => {
     parseFloat(price) || 0, currency || 'USD',
     stock_status || 'available', parseInt(stock_qty) || 0,
     is_featured ? 1 : 0, is_active !== undefined ? (is_active ? 1 : 0) : 1,
-    req.params.id
+    image_url || null, req.params.id
   );
   res.json({ message: 'Ürün güncellendi' });
 });

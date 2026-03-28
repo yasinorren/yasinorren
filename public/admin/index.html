@@ -290,6 +290,10 @@
           <input type="number" id="pmStockQty" min="0" placeholder="0"/>
         </div>
       </div>
+      <div class="mfg">
+        <label>Image URL</label>
+        <input type="text" id="pmImageUrl" placeholder="/uploads/image.jpg (or leave blank)"/>
+      </div>
       <div class="mf-check">
         <label><input type="checkbox" id="pmFeatured"/> Mark as Featured Product</label>
       </div>
@@ -404,6 +408,60 @@
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="imCancelBtn">Close</button>
         <button type="submit" class="btn-primary-a">Update</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ████ MODAL: CATEGORY PRODUCTS LIST ████ -->
+<div class="modal-bg hidden" id="catProdsModal">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <h3 id="catProdsTitle">Category Products</h3>
+      <button class="modal-x" onclick="closeCatProdsModal()" aria-label="Close">&times;</button>
+    </div>
+    <div id="catProdsBody" style="padding:0 0 4px">
+      <div style="text-align:center;padding:32px;color:#888">Loading...</div>
+    </div>
+    <div class="modal-actions" style="border-top:1px solid var(--border);padding:14px 20px">
+      <button type="button" class="btn-primary-a" onclick="openAddCatProduct()">+ Add Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ████ MODAL: CATEGORY PRODUCT ADD/EDIT ████ -->
+<div class="modal-bg hidden" id="catProdFormModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="catProdFormTitle">Add Product</h3>
+      <button class="modal-x" onclick="closeCatProdForm()" aria-label="Close">&times;</button>
+    </div>
+    <form id="catProdForm" class="modal-form">
+      <input type="hidden" id="cpfId"/>
+      <input type="hidden" id="cpfCatId"/>
+      <div class="mfg">
+        <label>Brand</label>
+        <input type="text" id="cpfBrand" placeholder="e.g. ORGAMİK"/>
+      </div>
+      <div class="mfg">
+        <label>Stock Code</label>
+        <input type="text" id="cpfCode" placeholder="e.g. OG-001"/>
+      </div>
+      <div class="mfg">
+        <label>Stock Name <span class="req">*</span></label>
+        <input type="text" id="cpfName" required placeholder="Product name"/>
+      </div>
+      <div class="mfg">
+        <label>Purpose / Application</label>
+        <textarea id="cpfPurpose" rows="2" placeholder="Describe the use or application..."></textarea>
+      </div>
+      <div class="mfg">
+        <label>Order Index</label>
+        <input type="number" id="cpfOrder" value="0" min="0"/>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeCatProdForm()">Cancel</button>
+        <button type="submit" class="btn-primary-a">Save</button>
       </div>
     </form>
   </div>
