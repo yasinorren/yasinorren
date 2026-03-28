@@ -50,7 +50,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     body: { username: document.getElementById('loginUser').value, password: document.getElementById('loginPass').value }
   }).catch(() => null);
 
-  btn.textContent = 'Giriş Yap';
+  btn.textContent = 'Sign In';
   btn.disabled = false;
 
   if (!data || data.error) {
@@ -69,6 +69,13 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 
 document.getElementById('logoutBtn').addEventListener('click', logout);
 
+/* ── Mobile Sidebar ── */
+function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+document.getElementById('mobileMenuBtn').addEventListener('click', openSidebar);
+document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
 /* ── Navigation ── */
 let currentPage = 'dashboard';
 
@@ -82,13 +89,16 @@ function initApp() {
 
 function navigateTo(page) {
   currentPage = page;
+  closeSidebar();
   document.querySelectorAll('.sb-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   const titles = {
     dashboard: 'Dashboard', products: 'Products', inquiries: 'Customer Inquiries',
     sales: 'Sales', settings: 'Settings', categories: 'Categories & Menus',
     sterility: 'Sterility Codes', media: 'Media Library', content: 'Site Content'
   };
-  document.getElementById('pageTitle').textContent = titles[page] || page;
+  const title = titles[page] || page;
+  document.getElementById('pageTitle').textContent = title;
+  document.getElementById('breadcrumbCurrent').textContent = title;
   document.getElementById('pageActions').innerHTML = '';
   ({
     dashboard: renderDashboard, products: renderProducts, inquiries: renderInquiries,
@@ -211,7 +221,7 @@ function filterProds() {
   const q   = document.getElementById('prodSearch').value.toLowerCase();
   const cat = document.getElementById('prodCatFilter').value;
   renderProductTable(allProducts.filter(p =>
-    (!q   || p.name_tr.toLowerCase().includes(q) || (p.catalog_no||'').toLowerCase().includes(q)) &&
+    (!q   || (p.name_tr||'').toLowerCase().includes(q) || (p.name_en||'').toLowerCase().includes(q) || (p.catalog_no||'').toLowerCase().includes(q)) &&
     (!cat || p.category === cat)
   ));
 }
@@ -987,7 +997,7 @@ async function saveSection(section) {
   const inputs = card.querySelectorAll('.content-input');
   const updates = {};
   inputs.forEach(inp => { updates[inp.dataset.key] = inp.value; });
-  const res = await api('/api/content', { method: 'PUT', body: { updates } });
+  const res = await api('/api/content', { method: 'PUT', body: updates });
   if (res && res.message && !res.error) toast('Content saved.');
   else toast(res?.error || 'Failed to save.', 'err');
 }

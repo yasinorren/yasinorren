@@ -207,170 +207,6 @@
   </main>
 </div>
 
-<!-- ████ MODAL: CATEGORY ████ -->
-<div class="modal-bg hidden" id="categoryModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3 id="catModalTitle">Add Category</h3>
-      <button class="modal-x" id="catClose" aria-label="Close">&times;</button>
-    </div>
-    <form id="categoryForm" class="modal-form">
-      <input type="hidden" id="catId"/>
-      <div class="mf-row">
-        <div class="mfg">
-          <label>Category Name <span class="req">*</span></label>
-          <input type="text" id="catName" placeholder="e.g. Clinical Microbiology" required/>
-        </div>
-        <div class="mfg">
-          <label>Slug <span class="req">*</span></label>
-          <input type="text" id="catSlug" placeholder="e.g. clinical-microbiology" required/>
-        </div>
-      </div>
-      <div class="mfg">
-        <label>Parent Category</label>
-        <select id="catParent">
-          <option value="">— None (Top Level) —</option>
-        </select>
-      </div>
-      <div class="mfg">
-        <label>Description</label>
-        <textarea id="catDescription" rows="3" placeholder="Brief description of this category..."></textarea>
-      </div>
-      <div class="mf-row">
-        <div class="mfg">
-          <label>Image URL</label>
-          <input type="url" id="catImageUrl" placeholder="https://..."/>
-        </div>
-        <div class="mfg">
-          <label>Display Order</label>
-          <input type="number" id="catOrder" min="0" value="0"/>
-        </div>
-      </div>
-      <div class="mf-check">
-        <label><input type="checkbox" id="catActive" checked/> Active / Visible</label>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="catCancelBtn">Cancel</button>
-        <button type="submit" class="btn-primary-a" id="catSubmitBtn">Save Category</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ████ MODAL: CATEGORY PRODUCT ████ -->
-<div class="modal-bg hidden" id="catProductModal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3 id="cpModalTitle">Add Product to Category</h3>
-      <button class="modal-x" id="cpClose" aria-label="Close">&times;</button>
-    </div>
-    <form id="catProductForm" class="modal-form">
-      <input type="hidden" id="cpId"/>
-      <input type="hidden" id="cpCategoryId"/>
-      <div class="mf-row">
-        <div class="mfg">
-          <label>Brand</label>
-          <input type="text" id="cpBrand" placeholder="e.g. Oxoid, Merck..."/>
-        </div>
-        <div class="mfg">
-          <label>Stock Code <span class="req">*</span></label>
-          <input type="text" id="cpStockCode" placeholder="e.g. CM0001" required/>
-        </div>
-      </div>
-      <div class="mfg">
-        <label>Stock Name / Product Title <span class="req">*</span></label>
-        <input type="text" id="cpStockName" placeholder="Full product name" required/>
-      </div>
-      <div class="mfg">
-        <label>Purpose / Application</label>
-        <textarea id="cpPurpose" rows="3" placeholder="Describe the intended use or application..."></textarea>
-      </div>
-      <div class="mfg">
-        <label>Display Order</label>
-        <input type="number" id="cpOrder" min="0" value="0"/>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="cpCancelBtn">Cancel</button>
-        <button type="submit" class="btn-primary-a" id="cpSubmitBtn">Save Product</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ████ MODAL: STERILITY CODE GENERATOR ████ -->
-<div class="modal-bg hidden" id="sterilityModal">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-head">
-      <h3 id="stModalTitle">Generate Sterility Code</h3>
-      <button class="modal-x" id="stClose" aria-label="Close">&times;</button>
-    </div>
-    <form id="sterilityForm" class="modal-form">
-      <input type="hidden" id="stId"/>
-
-      <div class="modal-section-label">Product Information</div>
-      <div class="mf-row">
-        <div class="mfg">
-          <label>Product Name <span class="req">*</span></label>
-          <input type="text" id="stProductName" placeholder="Full product name" required/>
-        </div>
-        <div class="mfg">
-          <label>Catalog No <span class="req">*</span></label>
-          <input type="text" id="stCatalogNo" placeholder="e.g. INN-CM-001" required/>
-        </div>
-      </div>
-      <div class="mfg">
-        <label>Batch / Lot Number <span class="req">*</span></label>
-        <input type="text" id="stBatchNo" placeholder="e.g. BL20250001" required/>
-      </div>
-
-      <div class="modal-section-label">Customer Information</div>
-      <div class="mf-row">
-        <div class="mfg">
-          <label>Customer Name</label>
-          <input type="text" id="stCustomerName" placeholder="Full name"/>
-        </div>
-        <div class="mfg">
-          <label>Customer Company</label>
-          <input type="text" id="stCustomerCompany" placeholder="Company name"/>
-        </div>
-      </div>
-      <div class="mfg">
-        <label>Invoice Date</label>
-        <input type="date" id="stInvoiceDate"/>
-      </div>
-
-      <div class="modal-section-label">Dates &amp; Test Result</div>
-      <div class="mf-row">
-        <div class="mfg">
-          <label>Manufacture Date <span class="req">*</span></label>
-          <input type="date" id="stManufactureDate" required/>
-        </div>
-        <div class="mfg">
-          <label>Expiry Date <span class="req">*</span></label>
-          <input type="date" id="stExpiryDate" required/>
-        </div>
-      </div>
-      <div class="mfg">
-        <label>Test Result <span class="req">*</span></label>
-        <select id="stTestResult" required>
-          <option value="">— Select Result —</option>
-          <option value="PASS">PASS — Sterility Confirmed</option>
-          <option value="FAIL">FAIL — Sterility Not Confirmed</option>
-          <option value="PENDING">PENDING — Awaiting Results</option>
-        </select>
-      </div>
-      <div class="mfg">
-        <label>Notes</label>
-        <textarea id="stNotes" rows="3" placeholder="Optional notes or remarks..."></textarea>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="stCancelBtn">Cancel</button>
-        <button type="submit" class="btn-primary-a" id="stSubmitBtn">Generate Code</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <!-- ████ MODAL: PRODUCT ████ -->
 <div class="modal-bg hidden" id="productModal">
   <div class="modal-box modal-box-lg">
@@ -397,12 +233,24 @@
         </div>
       </div>
       <div class="mfg">
+        <label>Ürün Adı (TR) <span class="req">*</span></label>
+        <input type="text" id="pmNameTr" required placeholder="Türkçe ürün adı"/>
+      </div>
+      <div class="mfg">
         <label>Product Name (EN) <span class="req">*</span></label>
         <input type="text" id="pmNameEn" required placeholder="Full product name in English"/>
       </div>
       <div class="mfg">
+        <label>Alt Kategori / Subcategory</label>
+        <input type="text" id="pmSubcat" placeholder="e.g. Swabs, Culture Media..."/>
+      </div>
+      <div class="mfg">
+        <label>Açıklama (TR)</label>
+        <textarea id="pmDescTr" rows="2" placeholder="Türkçe açıklama..."></textarea>
+      </div>
+      <div class="mfg">
         <label>Description (EN)</label>
-        <textarea id="pmDescEn" rows="3" placeholder="Product description in English..."></textarea>
+        <textarea id="pmDescEn" rows="2" placeholder="Product description in English..."></textarea>
       </div>
       <div class="mf-row">
         <div class="mfg">
@@ -561,64 +409,8 @@
   </div>
 </div>
 
-<!-- ████ MODAL: IMAGE UPLOAD / MEDIA LIBRARY ████ -->
-<div class="modal-bg hidden" id="mediaModal">
-  <div class="modal-box modal-box-xl">
-    <div class="modal-head">
-      <h3>Upload / Select Image</h3>
-      <button class="modal-x" id="mediaClose" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal-form">
-
-      <!-- Upload Area -->
-      <div class="upload-area" id="uploadDropZone">
-        <input type="file" id="uploadFileInput" accept="image/*" multiple class="upload-file-input"/>
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="12" fill="#EFF6FF"/>
-          <path d="M24 32V20M24 20L19 25M24 20L29 25" stroke="#0A5C8A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M16 36H32C34.2 36 36 34.2 36 32V28" stroke="#0A5C8A" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-        <p class="upload-title">Drag &amp; drop images here</p>
-        <p class="upload-sub">or <button type="button" class="upload-browse-btn" id="uploadBrowseBtn">browse files</button></p>
-        <p class="upload-hint">Supported: JPG, PNG, WebP, GIF — Max 5MB each</p>
-      </div>
-
-      <!-- Upload Progress (hidden by default) -->
-      <div class="upload-progress hidden" id="uploadProgress">
-        <div class="up-file" id="upFileName">Uploading...</div>
-        <div class="up-track">
-          <div class="up-fill" id="upFill" style="width:0%"></div>
-        </div>
-        <div class="up-pct" id="upPct">0%</div>
-      </div>
-
-      <!-- Existing Images Gallery -->
-      <div class="media-gallery-section">
-        <div class="mgs-header">
-          <h4>Existing Images</h4>
-          <div class="sc-search">
-            <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            <input type="text" id="mediaSearch" placeholder="Search images..."/>
-          </div>
-        </div>
-        <div class="media-grid" id="mediaGrid">
-          <div class="media-empty">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="#F0F4F8"/><path d="M10 38L20 24L27 31L34 20L42 38H10Z" stroke="#94A3B8" stroke-width="1.8" stroke-linejoin="round"/></svg>
-            <p>No images yet. Upload your first image above.</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="mediaCancelBtn">Cancel</button>
-        <button type="button" class="btn-primary-a" id="mediaSelectBtn" disabled>Insert Selected</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Toast Notification -->
-<div class="toast" id="toastMsg"></div>
+<div class="toast" id="toast"></div>
 
 <script src="/assets/js/admin.js"></script>
 </body>
