@@ -124,14 +124,17 @@ async function renderDashboard() {
     api('/api/inquiries/stats'),
     api('/api/sales/summary')
   ]);
-  if (!products) return;
+  if (!products) {
+    document.getElementById('contentBody').innerHTML =
+      '<div style="padding:48px;text-align:center;color:#c00">Veriler yüklenemedi. Sunucu çalışıyor mu kontrol edin, ardından sayfayı yenileyin.</div>';
+    return;
+  }
 
   const inStock  = products.filter(p => p.stock_status === 'available').length;
   const thisMonthRev = salesSummary?.thisMonth?.r || 0;
   const thisMonthOrd = salesSummary?.thisMonth?.c || 0;
   const monthly      = salesSummary?.monthly || [];
   const topProducts  = salesSummary?.topProducts || [];
-  const maxQty       = Math.max(...topProducts.map(p => p.total_qty), 1);
 
   document.getElementById('contentBody').innerHTML = `
     <div class="stat-grid">
@@ -377,9 +380,8 @@ function renderInqTable(inqs) {
 }
 
 async function openInqModal(id) {
-  const inqs = await api('/api/inquiries') || [];
-  const inq  = inqs.find(i => i.id === id);
-  if (!inq) return;
+  const inq = await api('/api/inquiries/' + id);
+  if (!inq || inq.error) { toast('Sorgu bulunamadı.', 'err'); return; }
 
   document.getElementById('imId').value     = inq.id;
   document.getElementById('imStatus').value = inq.status;
@@ -497,6 +499,7 @@ function renderSaleTable(sales) {
 }
 
 async function openSaleModal() {
+  if (!allProducts.length) allProducts = await api('/api/products') || [];
   // Populate product selector
   const sel = document.getElementById('smProductSel');
   sel.innerHTML = '<option value="">Manuel giriş</option>' +
@@ -697,10 +700,18 @@ function closeCatModal() { document.getElementById('catModal').classList.add('hi
 
 async function saveCategoryForm(e) {
   e.preventDefault();
-  const id = document.getElementById('catId').value;
+  const id   = document.getElementById('catId').value;
+  const name = document.getElementById('catName').value.trim();
+  let   slug = document.getElementById('catSlug').value.trim();
+  if (!slug) {
+    slug = name.toLowerCase()
+      .replace(/ş/g,'s').replace(/ç/g,'c').replace(/ğ/g,'g')
+      .replace(/ü/g,'u').replace(/ö/g,'o').replace(/ı/g,'i')
+      .replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-');
+  }
   const payload = {
-    name: document.getElementById('catName').value,
-    slug: document.getElementById('catSlug').value,
+    name,
+    slug,
     description: document.getElementById('catDesc').value,
     parent_id: document.getElementById('catParent').value || null,
     order_index: parseInt(document.getElementById('catOrder').value) || 0,
@@ -864,15 +875,15 @@ async function renderSterility() {
             ${codes.length === 0 ? '<tr><td colspan="9" style="text-align:center;color:#888">No codes generated yet.</td></tr>' :
               codes.map(c => `
                 <tr>
-                  <td><code class="code-cell">${c.code}</code></td>
-                  <td>${c.product_name || '-'}</td>
-                  <td>${c.catalog_no || '-'}</td>
-                  <td>${c.batch_no || '-'}</td>
-                  <td>${c.customer_name || '-'} ${c.customer_company ? '(' + c.customer_company + ')' : ''}</td>
-                  <td>${c.invoice_date || '-'}</td>
-                  <td>${c.expiry_date || '-'}</td>
-                  <td><span class="badge ${c.test_result === 'PASS' ? 'badge-ok' : 'badge-err'}">${c.test_result || 'PASS'}</span></td>
-                  <td><button class="btn-sm btn-del" onclick="deleteSterilityCode(${c.id},'${c.code}')">Delete</button></td>
+                  <td><code class="code-cell">${escHtml(c.code)}</code></td>
+                  <td>${escHtml(c.product_name || '-')}</td>
+                  <td>${escHtml(c.catalog_no || '-')}</td>
+                  <td>${escHtml(c.batch_no || '-')}</td>
+                  <td>${escHtml(c.customer_name || '-')}${c.customer_company ? ' (' + escHtml(c.customer_company) + ')' : ''}</td>
+                  <td>${escHtml(c.invoice_date || '-')}</td>
+                  <td>${escHtml(c.expiry_date || '-')}</td>
+                  <td><span class="badge ${c.test_result === 'PASS' ? 'badge-ok' : 'badge-err'}">${escHtml(c.test_result || 'PASS')}</span></td>
+                  <td><button class="btn-sm btn-del" onclick="deleteSterilityCode(${c.id},'${escAttr(c.code)}')">Delete</button></td>
                 </tr>
               `).join('')
             }
@@ -1008,8 +1019,8 @@ async function renderMedia() {
                 <span class="media-size">${(f.size/1024).toFixed(1)} KB</span>
               </div>
               <div class="media-actions">
-                <button class="btn-sm" onclick="copyUrl('${escHtml(f.url)}')">URL Kopyala</button>
-                <button class="btn-sm btn-del" onclick="deleteFile('${escHtml(f.filename)}')">Sil</button>
+                <button class="btn-sm" onclick="copyUrl('${escAttr(f.url)}')">URL Kopyala</button>
+                <button class="btn-sm btn-del" onclick="deleteFile('${escAttr(f.filename)}')">Sil</button>
               </div>
             </div>
           `).join('')

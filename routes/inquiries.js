@@ -38,6 +38,13 @@ router.get('/stats', auth, (req, res) => {
   res.json({ total, new: newInq, today });
 });
 
+// GET /api/inquiries/:id — admin only
+router.get('/:id', auth, (req, res) => {
+  const inq = db.prepare('SELECT * FROM inquiries WHERE id = ?').get(req.params.id);
+  if (!inq) return res.status(404).json({ error: 'Sorgu bulunamadı' });
+  res.json(inq);
+});
+
 // PUT /api/inquiries/:id — admin only (update status / add notes)
 router.put('/:id', auth, (req, res) => {
   const { status, admin_notes } = req.body;
