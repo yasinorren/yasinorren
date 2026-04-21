@@ -8,8 +8,8 @@ const auth = require('../middleware/auth');
 const uploadDir = path.join(__dirname, '../public/uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-const ALLOWED_EXTS  = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_EXTS  = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'text/html', 'text/plain'];
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -23,10 +23,7 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
   if (!ALLOWED_EXTS.includes(ext)) {
-    return cb(new Error('Yalnızca resim dosyaları yüklenebilir (JPG, PNG, GIF, WebP)'));
-  }
-  if (!ALLOWED_MIMES.includes(file.mimetype)) {
-    return cb(new Error('Geçersiz dosya türü'));
+    return cb(new Error('Yalnızca resim dosyaları yüklenebilir (JPG, PNG, GIF, WebP, SVG)'));
   }
   cb(null, true);
 };

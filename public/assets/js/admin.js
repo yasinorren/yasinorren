@@ -1093,11 +1093,10 @@ async function renderContent() {
 
   const data = await api('/api/content/schema');
   if (!Array.isArray(data)) { body.innerHTML = '<p class="err-msg">Failed to load content schema.</p>'; return; }
-  const rows = data;
 
   // Group by section
   const sections = {};
-  rows.forEach(r => {
+  data.forEach(r => {
     if (!sections[r.section]) sections[r.section] = [];
     sections[r.section].push(r);
   });
@@ -1106,29 +1105,109 @@ async function renderContent() {
     <div class="section-card content-section" data-section="${section}">
       <div class="sc-head"><h3>${section.charAt(0).toUpperCase() + section.slice(1)}</h3></div>
       <div class="content-fields">
-        ${fields.map(f => `
-          <div class="content-field">
-            <label>${f.label || f.key}
-              ${f.type === 'textarea' || f.type === 'html'
-                ? `<textarea class="content-input" data-key="${section}.${f.key}" rows="4">${escHtml(f.value || '')}</textarea>`
-                : f.type === 'image'
-                  ? `<div class="image-field">
-                      <input type="text" class="content-input" data-key="${section}.${f.key}" value="${f.value || ''}" placeholder="/uploads/image.jpg">
-                      ${f.value ? `<img src="${f.value}" alt="${f.key}" style="max-height:80px;margin-top:8px;border-radius:4px">` : ''}
-                    </div>`
-                  : `<input type="text" class="content-input" data-key="${section}.${f.key}" value="${escHtml(f.value || '')}">`
-              }
-            </label>
-          </div>
-        `).join('')}
+        ${fields.map(f => {
+          const fkey = `${section}.${f.key}`;
+          const safeId = `cf-${fkey.replace(/\./g,'-')}`;
+          if (f.type === 'textarea' || f.type === 'html') {
+            return `<div class="content-field"><label>${escHtml(f.label || f.key)}<textarea class="content-input" id="${safeId}" data-key="${fkey}" rows="4">${escHtml(f.value || '')}</textarea></label></div>`;
+          }
+          if (f.type === 'image') {
+            return `<div class="content-field">
+              <label style="display:block;margin-bottom:6px;font-size:.84rem;font-weight:600">${escHtml(f.label || f.key)}</label>
+              <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+                <input type="text" class="content-input" id="${safeId}" data-key="${fkey}" value="${escHtml(f.value || '')}" placeholder="/uploads/resim.jpg" style="flex:1">
+                <button type="button" class="btn-sm" style="white-space:nowrap" onclick="openMediaPicker('${fkey}','${safeId}')">Medyadan Seç</button>
+              </div>
+              <div id="prev-${safeId}" style="margin-top:4px">
+                ${f.value ? `<img src="${escHtml(f.value)}" alt="" style="max-height:80px;max-width:200px;border-radius:6px;border:1px solid var(--border)">` : ''}
+              </div>
+            </div>`;
+          }
+          return `<div class="content-field"><label>${escHtml(f.label || f.key)}<input type="text" class="content-input" id="${safeId}" data-key="${fkey}" value="${escHtml(f.value || '')}"></label></div>`;
+        }).join('')}
       </div>
       <div class="section-footer">
-        <button class="btn-primary" onclick="saveSection('${section}')">Save ${section.charAt(0).toUpperCase() + section.slice(1)}</button>
+        <button class="btn-primary" onclick="saveSection('${section}')">Kaydet — ${section.charAt(0).toUpperCase() + section.slice(1)}</button>
       </div>
     </div>
   `).join('');
 
   body.innerHTML = sectionHtml || '<p class="err-msg">No content fields defined.</p>';
+
+  // Live preview: update image preview when URL input changes
+  document.querySelectorAll('.content-input[data-key]').forEach(inp => {
+    if (inp.tagName === 'INPUT' && inp.type === 'text') {
+      const prevId = 'prev-cf-' + inp.dataset.key.replace(/\./g, '-');
+      inp.addEventListener('input', () => {
+        const prev = document.getElementById(prevId);
+        if (!prev) return;
+        const url = inp.value.trim();
+        prev.innerHTML = url ? `<img src="${escHtml(url)}" alt="" style="max-height:80px;max-width:200px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'" onload="this.style.display=''">` : '';
+      });
+    }
+  });
+}
+
+/* ── Media Picker ── */
+let mediaPickerTargetKey = '';
+let mediaPickerTargetId  = '';
+
+async function openMediaPicker(fieldKey, inputId) {
+  mediaPickerTargetKey = fieldKey;
+  mediaPickerTargetId  = inputId;
+  document.getElementById('mediaPickerModal').classList.remove('hidden');
+  await refreshMpGrid();
+}
+
+function closeMediaPicker() {
+  document.getElementById('mediaPickerModal').classList.add('hidden');
+}
+
+async function refreshMpGrid() {
+  const grid = document.getElementById('mpGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted)">Yükleniyor...</div>';
+  const files = await api('/api/upload');
+  if (!Array.isArray(files) || files.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted)">Henüz yüklenmiş görsel yok.<br>Yukarıdan bir görsel yükleyin.</div>';
+    return;
+  }
+  grid.innerHTML = files.map(f => `
+    <div class="mp-item" onclick="selectMediaFile('${escAttr(f.url)}')" title="${escHtml(f.filename)}">
+      <img src="${escHtml(f.url)}" alt="${escHtml(f.filename)}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'60\\' height=\\'60\\'><rect fill=\\'%23eee\\' width=\\'60\\' height=\\'60\\'/>\\<text x=\\'50%\\' y=\\'55%\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-size=\\'10\\' fill=\\'%23888\\'>SVG</text></svg>'">
+      <span>${escHtml(f.filename.length > 14 ? f.filename.slice(0,12) + '..' : f.filename)}</span>
+    </div>`).join('');
+}
+
+function selectMediaFile(url) {
+  const inp = document.getElementById(mediaPickerTargetId);
+  if (inp) {
+    inp.value = url;
+    inp.dispatchEvent(new Event('input'));
+  }
+  closeMediaPicker();
+  toast('Görsel seçildi: ' + url);
+}
+
+async function mpUploadFile(input) {
+  if (!input.files || !input.files.length) return;
+  const file = input.files[0];
+  const formData = new FormData();
+  formData.append('image', file);
+  const status = document.getElementById('mpUploadStatus');
+  status.textContent = 'Yükleniyor...';
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + authToken }, body: formData });
+    const data = await res.json();
+    if (data && data.url) {
+      status.textContent = 'Yüklendi!';
+      input.value = '';
+      await refreshMpGrid();
+    } else {
+      status.textContent = data?.error || 'Hata';
+    }
+  } catch(e) {
+    status.textContent = 'Yükleme hatası';
+  }
 }
 
 async function saveSection(section) {

@@ -261,6 +261,12 @@ input,select,textarea{font-family:var(--ff)}
 .image-field{display:flex;flex-direction:column;gap:8px}
 .section-footer{padding:12px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end}
 
+/* ── MEDIA PICKER ── */
+.mp-item{cursor:pointer;border:2px solid var(--border);border-radius:var(--r-sm);overflow:hidden;transition:.18s;display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--bg)}
+.mp-item:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 4px 14px rgba(10,92,138,.14)}
+.mp-item img{width:100%;height:80px;object-fit:cover;display:block}
+.mp-item span{font-size:.7rem;color:var(--muted);padding:4px 6px;display:block;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* ── RESPONSIVE ADDITIONS ── */
 @media(max-width:768px){
   .form-row{grid-template-columns:1fr}

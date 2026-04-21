@@ -132,6 +132,16 @@ db.exec(`
 try { db.exec('ALTER TABLE products ADD COLUMN image_url TEXT'); } catch(e) { /* already exists */ }
 try { db.exec('ALTER TABLE category_products ADD COLUMN image_url TEXT'); } catch(e) { /* already exists */ }
 
+/* ── Content field migrations (INSERT OR IGNORE — safe to run multiple times) ── */
+const _addContent = db.prepare('INSERT OR IGNORE INTO site_content (section, key, value, label, type) VALUES (@section, @key, @value, @label, @type)');
+[
+  { section: 'nav',   key: 'logo_url',    value: '', label: 'Logo Image URL (boş bırakılırsa varsayılan ikon)',   type: 'image' },
+  { section: 'nav',   key: 'site_name',   value: 'INNOMED',      label: 'Site Adı',       type: 'text'  },
+  { section: 'nav',   key: 'site_tagline',value: 'Life Sciences', label: 'Site Alt Başlık', type: 'text'  },
+  { section: 'hero',  key: 'bg_image',    value: '', label: 'Hero Arka Plan Görseli URL',                         type: 'image' },
+  { section: 'about', key: 'image',       value: '', label: 'Hakkımızda Bölüm Görseli URL',                       type: 'image' },
+].forEach(r => _addContent.run(r));
+
 /* ── Seed admin user ── */
 const adminUser = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
 if (!adminUser) {

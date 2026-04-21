@@ -191,9 +191,13 @@
         '</div></a>';
     }).join('');
 
+    var heroBgStyle = (c.hero && c.hero.bg_image)
+      ? ' style="background:url(\'' + esc(c.hero.bg_image) + '\') center/cover no-repeat,linear-gradient(135deg,#071624 0%,#0C2740 50%,#0A4878 100%)"'
+      : '';
+
     app.innerHTML =
       /* HERO */
-      '<section class="hero">' +
+      '<section class="hero"' + heroBgStyle + '>' +
         '<div class="hero-bg-overlay"></div>' +
         '<div class="container" style="position:relative;z-index:2;padding-top:80px;padding-bottom:80px">' +
           '<div class="hero-badge">&#128300; Life Sciences &amp; Diagnostics</div>' +
@@ -570,12 +574,18 @@
     var roots = categories.filter(function (c) { return !c.parent_id; });
     var c = siteContent;
 
+    var c = siteContent;
+    var siteName = (c.nav && c.nav.site_name) || 'INNOMED';
+    var logoHtml = (c.nav && c.nav.logo_url)
+      ? '<img src="' + esc(c.nav.logo_url) + '" alt="Logo" style="height:32px;width:auto;object-fit:contain">'
+      : '<svg width="32" height="32" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#0A5C8A"/><path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="10" r="2.8" fill="#26C6DA"/></svg>';
+
     footer.innerHTML =
       '<div class="footer-main container">' +
         '<div class="footer-brand">' +
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
-            '<svg width="32" height="32" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#0A5C8A"/><path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="10" r="2.8" fill="#26C6DA"/></svg>' +
-            '<strong style="font-size:1.05rem;color:#fff;font-family:Sora,sans-serif">INNOMED</strong>' +
+            logoHtml +
+            '<strong style="font-size:1.05rem;color:#fff;font-family:Sora,sans-serif">' + esc(siteName) + '</strong>' +
           '</div>' +
           '<p style="font-size:.85rem;color:rgba(255,255,255,.45);line-height:1.7">Advanced diagnostic and<br>microbiological solutions.</p>' +
         '</div>' +
@@ -635,6 +645,20 @@
     if (d && typeof d === 'object' && !Array.isArray(d) && !d.error) siteContent = d;
   }
 
+  /* ── Apply branding from site content (logo, site name) ── */
+  function applyBranding() {
+    var c = siteContent;
+    if (!c) return;
+    var wrap = document.getElementById('logoImgWrap');
+    if (wrap && c.nav && c.nav.logo_url) {
+      wrap.innerHTML = '<img src="' + esc(c.nav.logo_url) + '" alt="Logo" style="height:36px;width:auto;object-fit:contain;display:block">';
+    }
+    var nameEl = document.getElementById('siteNameText');
+    if (nameEl && c.nav && c.nav.site_name) nameEl.textContent = c.nav.site_name;
+    var tagEl = document.getElementById('siteTaglineText');
+    if (tagEl && c.nav && c.nav.site_tagline) tagEl.textContent = c.nav.site_tagline;
+  }
+
   /* ── Utility ── */
   function esc(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -643,6 +667,7 @@
   /* ── Init ── */
   async function init() {
     await Promise.all([loadContent(), buildNav()]);
+    applyBranding();
     buildFooter();
     navigate(location.pathname, false);
     initScroll();

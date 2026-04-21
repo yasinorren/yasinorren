@@ -476,6 +476,29 @@
   </div>
 </div>
 
+<!-- ████ MODAL: MEDIA PICKER ████ -->
+<div class="modal-bg hidden" id="mediaPickerModal">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <h3>Medya Seç</h3>
+      <button class="modal-x" onclick="closeMediaPicker()" aria-label="Close">&times;</button>
+    </div>
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+      <label style="font-size:.82rem;font-weight:600;display:block;margin-bottom:6px">Yeni Görsel Yükle</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="file" id="mpFileInput" accept="image/*,.svg" style="font-size:.82rem;flex:1" onchange="mpUploadFile(this)"/>
+        <span id="mpUploadStatus" style="font-size:.78rem;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div id="mpGrid" style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:380px;overflow-y:auto">
+      <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--muted)">Yükleniyor...</div>
+    </div>
+    <div class="modal-actions" style="border-top:1px solid var(--border);padding:12px 20px">
+      <button type="button" class="btn-cancel" onclick="closeMediaPicker()">İptal</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast Notification -->
 <div class="toast" id="toast"></div>
 
