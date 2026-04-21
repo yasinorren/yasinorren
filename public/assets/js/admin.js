@@ -40,9 +40,20 @@ function logout() {
 }
 
 if (authToken) {
-  document.getElementById('loginPage').classList.add('hidden');
-  document.getElementById('adminApp').classList.remove('hidden');
-  initApp();
+  // Verify token is still valid before skipping login
+  fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + authToken } })
+    .then(r => {
+      if (r.status === 401 || r.status === 403) { logout(); return; }
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('adminApp').classList.remove('hidden');
+      initApp();
+    })
+    .catch(() => {
+      // Server unreachable — still show admin if token exists (offline mode)
+      document.getElementById('loginPage').classList.add('hidden');
+      document.getElementById('adminApp').classList.remove('hidden');
+      initApp();
+    });
 }
 
 document.getElementById('loginForm').addEventListener('submit', async e => {
@@ -902,40 +913,47 @@ function openGenCode() {
   document.getElementById('generatedCodeBox').classList.add('hidden');
   document.getElementById('sterilityModal').classList.remove('hidden');
 }
-function closeGenCode() { document.getElementById('sterilityModal').classList.add('hidden'); }
+function closeGenCode() { const m = document.getElementById('sterilityModal'); if (m) m.classList.add('hidden'); }
 
-document.getElementById('steriClose').addEventListener('click', closeGenCode);
-document.getElementById('steriCancelBtn').addEventListener('click', closeGenCode);
-
-document.getElementById('steriForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const payload = {
-    product_name:     document.getElementById('scProduct').value,
-    catalog_no:       document.getElementById('scCatalog').value,
-    batch_no:         document.getElementById('scBatch').value,
-    customer_name:    document.getElementById('scCustomer').value,
-    customer_company: document.getElementById('scCompany').value,
-    invoice_date:     document.getElementById('scInvoice').value,
-    manufacture_date: document.getElementById('scMfg').value,
-    expiry_date:      document.getElementById('scExpiry').value,
-    notes:            document.getElementById('scNotes').value,
-    test_result:      document.getElementById('scResult').value
-  };
-  const btn = document.querySelector('#steriForm [type=submit]');
-  btn.disabled = true; btn.textContent = 'Oluşturuluyor...';
-  const res = await api('/api/sterility', { method: 'POST', body: payload });
-  btn.disabled = false; btn.textContent = 'Kod Oluştur';
-  if (res && res.code && !res.error) {
-    toast('Kod oluşturuldu: ' + res.code);
-    document.getElementById('codeDisplay').textContent = res.code;
-    document.getElementById('generatedCodeBox').classList.remove('hidden');
-    document.getElementById('steriForm').reset();
-    document.getElementById('scInvoice').value = new Date().toISOString().slice(0, 10);
-    if (currentPage === 'sterility') renderSterility();
-  } else {
-    toast(res?.error || 'Kod oluşturulamadı.', 'err');
-  }
-});
+(function bindSterilityModal() {
+  const sc = document.getElementById('steriClose');
+  const sb = document.getElementById('steriCancelBtn');
+  const sf = document.getElementById('steriForm');
+  if (sc) sc.addEventListener('click', closeGenCode);
+  if (sb) sb.addEventListener('click', closeGenCode);
+  if (sf) sf.addEventListener('submit', async e => {
+    e.preventDefault();
+    const payload = {
+      product_name:     document.getElementById('scProduct').value,
+      catalog_no:       document.getElementById('scCatalog').value,
+      batch_no:         document.getElementById('scBatch').value,
+      customer_name:    document.getElementById('scCustomer').value,
+      customer_company: document.getElementById('scCompany').value,
+      invoice_date:     document.getElementById('scInvoice').value,
+      manufacture_date: document.getElementById('scMfg').value,
+      expiry_date:      document.getElementById('scExpiry').value,
+      notes:            document.getElementById('scNotes').value,
+      test_result:      document.getElementById('scResult').value
+    };
+    const btn = sf.querySelector('[type=submit]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Oluşturuluyor...'; }
+    const res = await api('/api/sterility', { method: 'POST', body: payload });
+    if (btn) { btn.disabled = false; btn.textContent = 'Kod Oluştur'; }
+    if (res && res.code && !res.error) {
+      toast('Kod oluşturuldu: ' + res.code);
+      const cd = document.getElementById('codeDisplay');
+      const gb = document.getElementById('generatedCodeBox');
+      if (cd) cd.textContent = res.code;
+      if (gb) gb.classList.remove('hidden');
+      sf.reset();
+      const inv = document.getElementById('scInvoice');
+      if (inv) inv.value = new Date().toISOString().slice(0, 10);
+      if (currentPage === 'sterility') renderSterility();
+    } else {
+      toast(res?.error || 'Kod oluşturulamadı.', 'err');
+    }
+  });
+})();
 
 function copyCode() {
   const code = document.getElementById('codeDisplay').textContent;
@@ -1041,34 +1059,39 @@ function openOrderModal(id = null) {
   modal.classList.remove('hidden');
 }
 
-document.getElementById('omClose').addEventListener('click', () => document.getElementById('orderModal').classList.add('hidden'));
-document.getElementById('omCancelBtn').addEventListener('click', () => document.getElementById('orderModal').classList.add('hidden'));
-
-document.getElementById('orderForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const id = document.getElementById('omId').value;
-  const body = {
-    customer_name:  document.getElementById('omCustomerName').value,
-    company:        document.getElementById('omCompany').value,
-    customer_email: document.getElementById('omEmail').value,
-    customer_phone: document.getElementById('omPhone').value,
-    product_name:   document.getElementById('omProductName').value,
-    quantity:       document.getElementById('omQuantity').value,
-    status:         document.getElementById('omStatus').value,
-    status_note:    document.getElementById('omStatusNote').value,
-    notes:          document.getElementById('omNotes').value,
-  };
-  const btn = e.target.querySelector('[type=submit]');
-  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
-  const res = await api(id ? `/api/orders/${id}` : '/api/orders', { method: id ? 'PUT' : 'POST', body });
-  btn.disabled = false; btn.textContent = 'Kaydet';
-  if (res && !res.error) {
-    document.getElementById('orderModal').classList.add('hidden');
-    const msg = id ? 'Sipariş güncellendi' : ('Sipariş oluşturuldu' + (res.tracking_code ? ' — ' + res.tracking_code : ''));
-    toast(msg);
-    renderOrders();
-  } else toast(res?.error || 'Hata oluştu', 'err');
-});
+(function bindOrderModal() {
+  const oc = document.getElementById('omClose');
+  const ob = document.getElementById('omCancelBtn');
+  const of = document.getElementById('orderForm');
+  const closeOrder = () => { const m = document.getElementById('orderModal'); if (m) m.classList.add('hidden'); };
+  if (oc) oc.addEventListener('click', closeOrder);
+  if (ob) ob.addEventListener('click', closeOrder);
+  if (of) of.addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('omId').value;
+    const body = {
+      customer_name:  document.getElementById('omCustomerName').value,
+      company:        document.getElementById('omCompany').value,
+      customer_email: document.getElementById('omEmail').value,
+      customer_phone: document.getElementById('omPhone').value,
+      product_name:   document.getElementById('omProductName').value,
+      quantity:       document.getElementById('omQuantity').value,
+      status:         document.getElementById('omStatus').value,
+      status_note:    document.getElementById('omStatusNote').value,
+      notes:          document.getElementById('omNotes').value,
+    };
+    const btn = e.target.querySelector('[type=submit]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Kaydediliyor...'; }
+    const res = await api(id ? `/api/orders/${id}` : '/api/orders', { method: id ? 'PUT' : 'POST', body });
+    if (btn) { btn.disabled = false; btn.textContent = 'Kaydet'; }
+    if (res && !res.error) {
+      closeOrder();
+      const msg = id ? 'Sipariş güncellendi' : ('Sipariş oluşturuldu' + (res.tracking_code ? ' — ' + res.tracking_code : ''));
+      toast(msg);
+      renderOrders();
+    } else toast(res?.error || 'Hata oluştu', 'err');
+  });
+})();
 
 async function deleteOrder(id) {
   const o = allOrders.find(x => x.id === id);

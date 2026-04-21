@@ -29,8 +29,13 @@ router.post('/login', (req, res) => {
   res.json({ token, username: user.username, role: user.role });
 });
 
-// POST /api/auth/change-password  (protected)
+// GET /api/auth/me — token validity check
 const auth = require('../middleware/auth');
+router.get('/me', auth, (req, res) => {
+  res.json({ username: req.user.username, role: req.user.role });
+});
+
+// POST /api/auth/change-password  (protected)
 router.post('/change-password', auth, (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword || newPassword.length < 6)
