@@ -9,7 +9,7 @@ const uploadDir = path.join(__dirname, '../public/uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const ALLOWED_EXTS  = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'text/html', 'text/plain'];
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),

@@ -261,7 +261,7 @@ function renderProductTable(products) {
   tbody.innerHTML = products.map(p => `
     <tr>
       <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.catalog_no||'—')}</code></td>
-      <td><strong>${escHtml(p.name_tr)}</strong>${p.is_featured?'&nbsp;<span class="badge badge-featured">Öne Çıkan</span>':''}</td>
+      <td><strong>${escHtml(p.name_tr)}</strong>${p.is_featured?'&nbsp;<span class="badge badge-featured">Öne Çıkan</span>':''}${!p.is_active?'&nbsp;<span class="badge badge-err">Pasif</span>':''}</td>
       <td>${escHtml(catLabel[p.category]||p.category)}</td>
       <td>${escHtml(p.format||'—')}</td>
       <td>${parseInt(p.stock_qty)||0}</td>
@@ -299,6 +299,7 @@ function openProductModal(id = null) {
     document.getElementById('pmStockStatus').value = p.stock_status || 'available';
     document.getElementById('pmStockQty').value    = p.stock_qty || 0;
     document.getElementById('pmFeatured').checked  = !!p.is_featured;
+    document.getElementById('pmIsActive').checked  = p.is_active !== 0;
     document.getElementById('pmImageUrl').value    = p.image_url || '';
   }
   modal.classList.remove('hidden');
@@ -326,7 +327,7 @@ document.getElementById('productForm').addEventListener('submit', async e => {
     stock_qty:    document.getElementById('pmStockQty').value,
     is_featured:  document.getElementById('pmFeatured').checked,
     image_url:    document.getElementById('pmImageUrl').value,
-    is_active:    1
+    is_active:    document.getElementById('pmIsActive').checked ? 1 : 0
   };
   const btn = e.target.querySelector('[type=submit]');
   btn.disabled = true; btn.textContent = 'Kaydediliyor...';
@@ -611,15 +612,14 @@ async function renderCategories() {
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
   document.getElementById('pageActions').innerHTML =
-    '<button class="btn-primary" onclick="openAddCategory()">+ Add Category</button>';
+    '<button class="btn-add" id="addCatBtn"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2V14M2 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Kategori Ekle</button>';
+  document.getElementById('addCatBtn').addEventListener('click', openAddCategory);
 
   const rawCats = await api('/api/categories');
-  if (!Array.isArray(rawCats)) { body.innerHTML = '<p class="err-msg">Failed to load categories.</p>'; return; }
+  if (!Array.isArray(rawCats)) { body.innerHTML = '<p style="padding:48px;text-align:center;color:#c00">Kategoriler yüklenemedi.</p>'; return; }
   allCategories = [];
   function flatCats(arr) { arr.forEach(c => { const kids = c.children||[]; delete c.children; allCategories.push(c); if(kids.length) flatCats(kids); }); }
   flatCats(rawCats);
-
-  const roots = allCategories.filter(c => !c.parent_id);
 
   function buildTree(cats, parentId, level) {
     return cats.filter(c => c.parent_id === parentId).map(c => {
@@ -629,12 +629,12 @@ async function renderCategories() {
         <td>${indent}<strong>${escHtml(c.name)}</strong></td>
         <td><code>${escHtml(c.slug)}</code></td>
         <td>${c.description ? escHtml(c.description.substring(0,60)) + '...' : '-'}</td>
-        <td>${c.parent_id ? escHtml((allCategories.find(x=>x.id===c.parent_id)||{}).name||'-') : '<em>Root</em>'}</td>
-        <td>${c.is_active ? '<span class="badge badge-ok">Active</span>' : '<span class="badge badge-err">Inactive</span>'}</td>
+        <td>${c.parent_id ? escHtml((allCategories.find(x=>x.id===c.parent_id)||{}).name||'-') : '<em>Kök</em>'}</td>
+        <td>${c.is_active ? '<span class="badge badge-ok">Aktif</span>' : '<span class="badge badge-err">Pasif</span>'}</td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn-sm btn-edit" onclick="openEditCategory(${c.id})">Edit</button>
-          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" onclick="openCatProducts(${c.id},'${escAttr(c.name)}')">Products</button>
-          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${escAttr(c.name)}')">Delete</button>
+          <button class="btn-sm btn-edit" onclick="openEditCategory(${c.id})">Düzenle</button>
+          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" onclick="openCatProducts(${c.id},'${escAttr(c.name)}')">Ürünler</button>
+          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${escAttr(c.name)}')">Sil</button>
         </td>
       </tr>` + children;
     }).join('');
@@ -642,52 +642,26 @@ async function renderCategories() {
 
   body.innerHTML = `
     <div class="section-card">
-      <div class="sc-head"><h3>All Categories (${allCategories.length})</h3></div>
+      <div class="sc-head"><h3>Tüm Kategoriler (${allCategories.length})</h3></div>
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Name</th><th>Slug</th><th>Description</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Ad</th><th>Slug</th><th>Açıklama</th><th>Üst Kategori</th><th>Durum</th><th>İşlemler</th></tr></thead>
           <tbody>${buildTree(allCategories, null, 0)}</tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Add/Edit Category Modal -->
-    <div id="catModal" class="modal-overlay hidden">
-      <div class="modal-box">
-        <div class="modal-header"><h3 id="catModalTitle">Add Category</h3><button class="modal-close" onclick="closeCatModal()">&times;</button></div>
-        <form id="catForm" class="modal-form">
-          <input type="hidden" id="catId">
-          <label>Name *<input type="text" id="catName" required></label>
-          <label>Slug (auto-generated if empty)<input type="text" id="catSlug" placeholder="e.g. covid-19"></label>
-          <label>Description<textarea id="catDesc" rows="3"></textarea></label>
-          <label>Parent Category
-            <select id="catParent">
-              <option value="">— Root (No Parent) —</option>
-              ${allCategories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-            </select>
-          </label>
-          <label>Order Index<input type="number" id="catOrder" value="0" min="0"></label>
-          <label>Image URL<input type="text" id="catImage" placeholder="/uploads/image.jpg"></label>
-          <label class="check-label"><input type="checkbox" id="catActive" checked> Active</label>
-          <div class="modal-footer">
-            <button type="button" class="btn-cancel" onclick="closeCatModal()">Cancel</button>
-            <button type="submit" class="btn-primary">Save</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('catForm').addEventListener('submit', saveCategoryForm);
+    </div>`;
 }
 
 function openAddCategory() {
-  document.getElementById('catModalTitle').textContent = 'Add Category';
+  document.getElementById('catModalTitle').textContent = 'Kategori Ekle';
   document.getElementById('catId').value = '';
   document.getElementById('catName').value = '';
   document.getElementById('catSlug').value = '';
   document.getElementById('catDesc').value = '';
-  document.getElementById('catParent').value = '';
+  const sel = document.getElementById('catParent');
+  sel.innerHTML = '<option value="">— Kök (Üst Yok) —</option>' +
+    allCategories.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+  sel.value = '';
   document.getElementById('catOrder').value = '0';
   document.getElementById('catImage').value = '';
   document.getElementById('catActive').checked = true;
@@ -697,12 +671,15 @@ function openAddCategory() {
 function openEditCategory(id) {
   const cat = allCategories.find(c => c.id === id);
   if (!cat) return;
-  document.getElementById('catModalTitle').textContent = 'Edit Category';
+  document.getElementById('catModalTitle').textContent = 'Kategori Düzenle';
   document.getElementById('catId').value = cat.id;
   document.getElementById('catName').value = cat.name || '';
   document.getElementById('catSlug').value = cat.slug || '';
   document.getElementById('catDesc').value = cat.description || '';
-  document.getElementById('catParent').value = cat.parent_id || '';
+  const sel = document.getElementById('catParent');
+  sel.innerHTML = '<option value="">— Kök (Üst Yok) —</option>' +
+    allCategories.filter(c => c.id !== id).map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+  sel.value = cat.parent_id || '';
   document.getElementById('catOrder').value = cat.order_index || 0;
   document.getElementById('catImage').value = cat.image_url || '';
   document.getElementById('catActive').checked = !!cat.is_active;
@@ -734,15 +711,15 @@ async function saveCategoryForm(e) {
   const res = id
     ? await api('/api/categories/' + id, { method: 'PUT', body: payload })
     : await api('/api/categories', { method: 'POST', body: payload });
-  if (res && (res.id || res.message) && !res.error) { toast(id ? 'Category updated.' : 'Category created.'); closeCatModal(); renderCategories(); }
-  else toast(res?.error || 'Failed to save.', 'err');
+  if (res && (res.id || res.message) && !res.error) { toast(id ? 'Kategori güncellendi.' : 'Kategori oluşturuldu.'); closeCatModal(); renderCategories(); }
+  else toast(res?.error || 'Kaydedilemedi.', 'err');
 }
 
 async function deleteCategory(id, name) {
-  if (!confirm('Delete category "' + name + '"? This cannot be undone.')) return;
+  if (!confirm('"' + name + '" kategorisini silmek istediğinizden emin misiniz?')) return;
   const res = await api('/api/categories/' + id, { method: 'DELETE' });
-  if (res && res.message && !res.error) { toast('Category deleted.'); renderCategories(); }
-  else toast(res?.error || 'Failed to delete.', 'err');
+  if (res && res.message && !res.error) { toast('Kategori silindi.'); renderCategories(); }
+  else toast(res?.error || 'Silinemedi.', 'err');
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1342,6 +1319,15 @@ async function saveSection(section) {
   if (res && res.message && !res.error) toast('Content saved.');
   else toast(res?.error || 'Failed to save.', 'err');
 }
+
+(function bindCatModal() {
+  const cc = document.getElementById('catModalClose');
+  const cb = document.getElementById('catModalCancelBtn');
+  const cf = document.getElementById('catForm');
+  if (cc) cc.addEventListener('click', closeCatModal);
+  if (cb) cb.addEventListener('click', closeCatModal);
+  if (cf) cf.addEventListener('submit', saveCategoryForm);
+})();
 
 function escHtml(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
