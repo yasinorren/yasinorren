@@ -197,8 +197,8 @@
         '<div class="hero-bg-overlay"></div>' +
         '<div class="container" style="position:relative;z-index:2;padding-top:80px;padding-bottom:80px">' +
           '<div class="hero-badge">&#128300; Life Sciences &amp; Diagnostics</div>' +
-          '<h1 class="hero-title">' + ((c.hero && c.hero.title) || t('heroTitle')) + '</h1>' +
-          '<p class="hero-desc">' + ((c.hero && c.hero.subtitle) || t('heroSub')) + '</p>' +
+          '<h1 class="hero-title">' + ((c.hero && c.hero.title_line1) ? (c.hero.title_line1 + (c.hero.title_line2 ? ' ' + c.hero.title_line2 : '')) : t('heroTitle')) + '</h1>' +
+          '<p class="hero-desc">' + ((c.hero && (c.hero.desc || c.hero.subtitle)) || t('heroSub')) + '</p>' +
           '<div class="hero-btns">' +
             '<button class="btn btn-primary" onclick="document.getElementById(\'categories-sec\').scrollIntoView({behavior:\'smooth\'})">' + t('heroCta') + '</button>' +
             '<a href="/verify" data-spa class="btn btn-ghost">' + t('heroVerify') + '</a>' +
@@ -222,8 +222,8 @@
         '<div class="container about-grid">' +
           '<div class="about-text">' +
             '<span class="section-label">Who We Are</span>' +
-            '<h2>' + ((c.about && c.about.title) || t('aboutTitle')) + '</h2>' +
-            '<p>' + ((c.about && c.about.text) || t('aboutText')) + '</p>' +
+            '<h2>' + ((c.about && c.about.title_line1) ? (c.about.title_line1 + (c.about.title_line2 ? ' ' + c.about.title_line2 : '')) : t('aboutTitle')) + '</h2>' +
+            '<p>' + ((c.about && (c.about.p1 || c.about.text)) || t('aboutText')) + '</p>' +
             '<ul class="about-checks">' +
               '<li>&#10003; Clinical &amp; Industrial Microbiology</li>' +
               '<li>&#10003; Environmental Control Products</li>' +
@@ -304,6 +304,7 @@
             '<div class="fg" style="margin-bottom:14px"><label>' + t('contactMsg') + ' *</label><textarea name="message" rows="5" required></textarea></div>' +
             '<button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">' + t('contactSend') + '</button>' +
             '<div id="contactMsg" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(0,137,123,.08);border:1px solid rgba(0,137,123,.2);border-radius:8px;color:#00897B;font-size:.88rem">' + t('contactSuccess') + '</div>' +
+            '<div id="contactMsgErr" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.2);border-radius:8px;color:#DC3545;font-size:.88rem">An error occurred. Please try again.</div>' +
           '</form>' +
         '</div>' +
       '</section>';
@@ -318,7 +319,7 @@
       /* Try to load categories first if empty */
       if (categories.length === 0) {
         var d = await api('/api/categories');
-        if (d && d.success) { categories = d.categories || []; renderNav(); buildMobileNav(); buildFooter(); }
+        if (Array.isArray(d)) { categories = []; (function fl(arr){arr.forEach(function(c){var k=c.children||[];delete c.children;categories.push(c);if(k.length)fl(k);})})(d); renderNav(); buildMobileNav(); buildFooter(); }
         cat = categories.find(function (c) { return c.slug === slug; });
       }
     }

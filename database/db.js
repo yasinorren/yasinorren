@@ -78,6 +78,7 @@ db.exec(`
     stock_qty      INTEGER DEFAULT 0,
     is_featured    INTEGER DEFAULT 0,
     is_active      INTEGER DEFAULT 1,
+    image_url      TEXT,
     created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -126,6 +127,10 @@ db.exec(`
     UNIQUE(section, key)
   );
 `);
+
+/* ── Migrations (safe to run multiple times) ── */
+try { db.exec('ALTER TABLE products ADD COLUMN image_url TEXT'); } catch(e) { /* already exists */ }
+try { db.exec('ALTER TABLE category_products ADD COLUMN image_url TEXT'); } catch(e) { /* already exists */ }
 
 /* ── Seed admin user ── */
 const adminUser = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');

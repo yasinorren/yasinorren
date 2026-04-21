@@ -2,10 +2,21 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database/db');
 const auth = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
 
-// GET /api/categories - full tree (public)
+// GET /api/categories - full tree (public; returns all categories when called with valid JWT)
 router.get('/', (req, res) => {
-  const all = db.prepare('SELECT * FROM categories WHERE is_active=1 ORDER BY order_index').all();
+  let isAdmin = false;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'innomed-secret-key');
+      isAdmin = true;
+    } catch(e) { /* invalid token — treat as public request */ }
+  }
+  const all = isAdmin
+    ? db.prepare('SELECT * FROM categories ORDER BY order_index').all()
+    : db.prepare('SELECT * FROM categories WHERE is_active=1 ORDER BY order_index').all();
   const map = {}, roots = [];
   for (const c of all) { c.children = []; map[c.id] = c; }
   for (const c of all) {
@@ -33,7 +44,7 @@ router.put('/:id', auth, (req, res) => {
   try {
     db.prepare(
       'UPDATE categories SET name=?,slug=?,parent_id=?,description=?,image_url=?,order_index=?,is_active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?'
-    ).run(name, slug, parent_id || null, description || '', image_url || null, order_index || 0, is_active === false ? 0 : 1, req.params.id);
+    ).run(name, slug, parent_id || null, description || '', image_url || null, order_index || 0, is_active ? 1 : 0, req.params.id);
     res.json({ message: 'Category updated' });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
