@@ -85,6 +85,7 @@ app.use('/api/sales',      require('./routes/sales'));
 app.use('/api/content',    require('./routes/content'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/sterility',  require('./routes/sterility'));
+app.use('/api/orders',     require('./routes/orders'));
 app.use('/api/upload',     require('./routes/upload'));
 
 // ── SPA Fallbacks ─────────────────────────────────────────────────────────────

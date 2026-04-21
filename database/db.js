@@ -116,6 +116,22 @@ db.exec(`
     created_at       DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS orders (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    tracking_code  TEXT UNIQUE NOT NULL,
+    customer_name  TEXT NOT NULL,
+    customer_email TEXT,
+    customer_phone TEXT,
+    company        TEXT,
+    product_name   TEXT NOT NULL,
+    quantity       INTEGER DEFAULT 1,
+    notes          TEXT,
+    status         TEXT DEFAULT 'received',
+    status_note    TEXT,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS site_content (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     section    TEXT NOT NULL,

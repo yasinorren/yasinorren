@@ -9,7 +9,7 @@
   /* ── Translations ── */
   var T = {
     en: {
-      home:'Home', products:'Products', verify:'Sterility Verify', contact:'Contact',
+      home:'Home', products:'Products', verify:'Sterility Verify', contact:'Contact', track:'Track Order',
       heroTitle:'Advanced Life Sciences Solutions',
       heroSub:'Innovative diagnostic products for microbiology, infection control and environmental monitoring.',
       heroCta:'Explore Products', heroVerify:'Verify Sterility Certificate',
@@ -23,12 +23,14 @@
       verifyTitle:'Sterility Code Verification',
       verifyPlaceholder:'Enter code — e.g. INN-STERI-2024-XXXXXXXX',
       verifyBtn:'Verify Code', codeValid:'VALID', codeInvalid:'CODE NOT FOUND',
+      trackTitle:'Order Tracking', trackPlaceholder:'Enter tracking code — e.g. INN-ORD-2024-XXXXXXXX',
+      trackBtn:'Track Order', trackFound:'Order Found', trackNotFound:'Order not found',
       brand:'Brand', stockCode:'Stock Code', stockName:'Product Name', purpose:'Purpose of Use',
       noProducts:'No products listed for this category yet.',
       allRights:'All rights reserved.', langToggle:'TR'
     },
     tr: {
-      home:'Ana Sayfa', products:'Ürünler', verify:'Sterilite Doğrulama', contact:'İletişim',
+      home:'Ana Sayfa', products:'Ürünler', verify:'Sterilite Doğrulama', contact:'İletişim', track:'Sipariş Takip',
       heroTitle:'İleri Yaşam Bilimleri Çözümleri',
       heroSub:'Mikrobiyoloji, enfeksiyon kontrolü ve çevre izleme için yenilikçi tanısal ürünler.',
       heroCta:'Ürünleri İncele', heroVerify:'Sterilite Sertifikası Doğrula',
@@ -42,6 +44,8 @@
       verifyTitle:'Sterilite Kodu Doğrulama',
       verifyPlaceholder:'Kodu girin — örn: INN-STERI-2024-XXXXXXXX',
       verifyBtn:'Doğrula', codeValid:'GEÇERLİ', codeInvalid:'KOD BULUNAMADI',
+      trackTitle:'Sipariş Takip', trackPlaceholder:'Takip kodu girin — örn: INN-ORD-2024-XXXXXXXX',
+      trackBtn:'Takip Et', trackFound:'Sipariş Bulundu', trackNotFound:'Sipariş bulunamadı',
       brand:'Marka', stockCode:'Stok Kodu', stockName:'Ürün Adı', purpose:'Kullanım Amacı',
       noProducts:'Bu kategori için henüz ürün eklenmemiş.',
       allRights:'Tüm hakları saklıdır.', langToggle:'EN'
@@ -59,6 +63,7 @@
     app.innerHTML = '<div class="page-loading"><div class="spinner"></div></div>';
     if (path === '/' || path === '') { renderHome(app); return; }
     if (path === '/verify') { renderVerify(app); return; }
+    if (path === '/track') { renderTrack(app); return; }
     var m = path.match(/^\/category\/(.+)$/);
     if (m) { renderCategory(app, m[1]); return; }
     renderHome(app);
@@ -139,6 +144,7 @@
         '<div class="mega-menu" id="megaMenu">' + (cols || '<p style="padding:16px;color:#888">Loading...</p>') + '</div>' +
       '</div>' +
       '<a href="/verify" data-spa class="nl">' + t('verify') + '</a>' +
+      '<a href="/track" data-spa class="nl">' + t('track') + '</a>' +
       '<a href="/#contact" data-spa class="nl">' + t('contact') + '</a>' +
       '<button class="lang-btn" onclick="window.__toggleLang()">' + t('langToggle') + '</button>';
 
@@ -170,6 +176,7 @@
       });
     });
     html += '<a href="/verify" data-spa class="mob-link">' + t('verify') + '</a>';
+    html += '<a href="/track" data-spa class="mob-link">' + t('track') + '</a>';
     html += '<a href="/#contact" data-spa class="mob-link">' + t('contact') + '</a>';
     container.innerHTML = html;
   }
@@ -475,6 +482,99 @@
     return '<div class="vr-row"><strong>' + label + '</strong><span>' + (val || '-') + '</span></div>';
   }
 
+  /* ── Track Order Page ── */
+  function renderTrack(app) {
+    app.innerHTML =
+      '<div class="page-hero">' +
+        '<div class="container">' +
+          '<h1 style="font-size:clamp(1.8rem,4vw,2.6rem);color:#fff;margin-bottom:10px">' + t('trackTitle') + '</h1>' +
+          '<p style="color:rgba(255,255,255,.7)">Enter your tracking code to see the current status of your order.</p>' +
+        '</div>' +
+      '</div>' +
+      '<div class="container" style="padding-top:52px;padding-bottom:80px">' +
+        '<div class="verify-card">' +
+          '<div class="verify-search">' +
+            '<input type="text" id="trackInput" placeholder="' + t('trackPlaceholder') + '" class="verify-input">' +
+            '<button class="btn btn-primary" onclick="window.__doTrack()">' + t('trackBtn') + '</button>' +
+          '</div>' +
+          '<div id="trackResult"></div>' +
+        '</div>' +
+        '<div class="verify-info-box">' +
+          '<h3>About Order Tracking</h3>' +
+          '<p>Each order receives a unique tracking code in the format <code>INN-ORD-YYYY-XXXXXXXX</code>.</p>' +
+          '<ul><li>Tracking code is provided at the time of order placement</li><li>Track your order status at any time, 24/7</li><li>Contact us if you need further assistance</li></ul>' +
+        '</div>' +
+      '</div>';
+
+    var inp = document.getElementById('trackInput');
+    if (inp) inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') window.__doTrack(); });
+    var params = new URLSearchParams(location.search);
+    var code = params.get('code');
+    if (code && inp) { inp.value = code; window.__doTrack(); }
+  }
+
+  var trackStatusLabels = {
+    en: { received:'Received', processing:'Processing', preparing:'Preparing', shipped:'Shipped', delivered:'Delivered', cancelled:'Cancelled' },
+    tr: { received:'Alındı', processing:'İşleme Alındı', preparing:'Hazırlanıyor', shipped:'Kargoya Verildi', delivered:'Teslim Edildi', cancelled:'İptal Edildi' }
+  };
+
+  window.__doTrack = async function () {
+    var inp = document.getElementById('trackInput');
+    var res = document.getElementById('trackResult');
+    if (!inp || !res) return;
+    var code = inp.value.trim().toUpperCase();
+    if (!code) return;
+    res.innerHTML = '<div style="text-align:center;padding:24px"><div class="spinner" style="margin:0 auto"></div></div>';
+    var data = await api('/api/orders/track/' + encodeURIComponent(code));
+    var lbl = trackStatusLabels[lang] || trackStatusLabels.en;
+    if (data && data.tracking_code) {
+      var steps = ['received','processing','preparing','shipped','delivered'];
+      var cancelled = data.status === 'cancelled';
+      var curIdx = steps.indexOf(data.status);
+
+      var timelineHtml;
+      if (cancelled) {
+        timelineHtml = '<div style="margin:20px 0;padding:14px 18px;background:rgba(198,40,40,.06);border:1px solid rgba(198,40,40,.2);border-radius:8px;color:#C62828;font-weight:600;text-align:center">&#10007; ' + lbl.cancelled + '</div>';
+      } else {
+        timelineHtml = '<div style="display:flex;align-items:center;margin:24px 0;overflow-x:auto;padding:4px 0">' +
+          steps.map(function(s, i) {
+            var done = i <= curIdx;
+            var active = i === curIdx;
+            var dotStyle = done
+              ? 'width:28px;height:28px;border-radius:50%;background:' + (active ? '#0A5C8A' : '#26C6DA') + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0'
+              : 'width:28px;height:28px;border-radius:50%;background:#e8ecef;color:#9BA8B4;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0';
+            var labelStyle = 'font-size:.72rem;margin-top:5px;text-align:center;font-weight:' + (active ? '700' : '400') + ';color:' + (done ? '#0A5C8A' : '#9BA8B4');
+            var lineStyle = 'flex:1;height:2px;background:' + (i < curIdx ? '#26C6DA' : '#e8ecef') + ';min-width:20px;margin:0 2px;flex-shrink:0';
+            var item = '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">' +
+              '<div style="' + dotStyle + '">' + (done ? '&#10003;' : (i + 1)) + '</div>' +
+              '<div style="' + labelStyle + '">' + esc(lbl[s] || s) + '</div>' +
+              '</div>';
+            return item + (i < steps.length - 1 ? '<div style="' + lineStyle + ';margin-bottom:18px"></div>' : '');
+          }).join('') +
+        '</div>';
+      }
+
+      res.innerHTML =
+        '<div class="verify-result valid">' +
+          '<div class="vr-status ok"><span>&#128230;</span> ' + t('trackFound') + '</div>' +
+          timelineHtml +
+          '<div class="vr-table">' +
+            vrow((lang === 'tr' ? 'Takip Kodu' : 'Tracking Code'), esc(data.tracking_code)) +
+            vrow((lang === 'tr' ? 'Müşteri' : 'Customer'), esc(data.customer_name)) +
+            vrow((lang === 'tr' ? 'Ürün' : 'Product'), esc(data.product_name)) +
+            vrow((lang === 'tr' ? 'Miktar' : 'Quantity'), data.quantity) +
+            (data.status_note ? vrow((lang === 'tr' ? 'Durum Notu' : 'Status Note'), esc(data.status_note)) : '') +
+          '</div>' +
+        '</div>';
+    } else {
+      res.innerHTML =
+        '<div class="verify-result invalid">' +
+          '<div class="vr-status fail"><span>&#10007;</span> ' + t('trackNotFound') + '</div>' +
+          '<p style="color:#5A7184;margin-top:10px">The code <strong>' + esc(code) + '</strong> was not found. Please check and try again.</p>' +
+        '</div>';
+    }
+  };
+
   /* ── Inquiry Modal ── */
   window.__openInquiry = function (name, code) {
     var modal = document.getElementById('inquiryModal');
@@ -600,6 +700,7 @@
           '<ul>' +
             '<li><a href="/#about" data-spa>About Us</a></li>' +
             '<li><a href="/verify" data-spa>Sterility Verify</a></li>' +
+            '<li><a href="/track" data-spa>Track Order</a></li>' +
             '<li><a href="/#contact" data-spa>Contact</a></li>' +
           '</ul>' +
         '</div>' +

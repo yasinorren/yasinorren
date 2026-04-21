@@ -101,9 +101,10 @@ function navigateTo(page) {
   closeSidebar();
   document.querySelectorAll('.sb-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   const titles = {
-    dashboard: 'Dashboard', products: 'Products', inquiries: 'Customer Inquiries',
-    sales: 'Sales', settings: 'Settings', categories: 'Categories & Menus',
-    sterility: 'Sterility Codes', media: 'Media Library', content: 'Site Content'
+    dashboard: 'Kontrol Paneli', products: 'Ürünler', inquiries: 'Müşteri Sorguları',
+    sales: 'Satışlar', settings: 'Ayarlar', categories: 'Kategoriler',
+    sterility: 'Sterilite Kodları', media: 'Medya Kütüphanesi', content: 'Site İçeriği',
+    orders: 'Sipariş Takip'
   };
   const title = titles[page] || page;
   document.getElementById('pageTitle').textContent = title;
@@ -112,7 +113,8 @@ function navigateTo(page) {
   ({
     dashboard: renderDashboard, products: renderProducts, inquiries: renderInquiries,
     sales: renderSales, settings: renderSettings, categories: renderCategories,
-    sterility: renderSterility, media: renderMedia, content: renderContent
+    sterility: renderSterility, media: renderMedia, content: renderContent,
+    orders: renderOrders
   }[page] || (() => {}))();
 }
 
@@ -854,25 +856,26 @@ async function renderSterility() {
   const body = document.getElementById('contentBody');
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
-  document.getElementById('pageActions').innerHTML =
-    '<button class="btn-primary" onclick="openGenCode()">+ Generate Code</button>';
+  const actions = document.getElementById('pageActions');
+  actions.innerHTML = '<button class="btn-add" id="genCodeBtn"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2V14M2 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Kod Oluştur</button>';
+  document.getElementById('genCodeBtn').addEventListener('click', openGenCode);
 
   const data = await api('/api/sterility');
   const codes = Array.isArray(data) ? data : [];
 
   body.innerHTML = `
     <div class="section-card">
-      <div class="sc-head"><h3>Sterility Codes (${codes.length})</h3></div>
+      <div class="sc-head"><h3>Sterilite Kodları (${codes.length})</h3></div>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Code</th><th>Product</th><th>Catalog No</th><th>Batch No</th>
-              <th>Customer</th><th>Invoice Date</th><th>Expiry</th><th>Result</th><th>Actions</th>
+              <th>Kod</th><th>Ürün</th><th>Katalog No</th><th>Parti No</th>
+              <th>Müşteri</th><th>Fatura Tarihi</th><th>Son Kullanma</th><th>Sonuç</th><th>İşlem</th>
             </tr>
           </thead>
           <tbody>
-            ${codes.length === 0 ? '<tr><td colspan="9" style="text-align:center;color:#888">No codes generated yet.</td></tr>' :
+            ${codes.length === 0 ? '<tr><td colspan="9" style="text-align:center;color:#888">Henüz kod oluşturulmadı.</td></tr>' :
               codes.map(c => `
                 <tr>
                   <td><code class="code-cell">${escHtml(c.code)}</code></td>
@@ -883,101 +886,197 @@ async function renderSterility() {
                   <td>${escHtml(c.invoice_date || '-')}</td>
                   <td>${escHtml(c.expiry_date || '-')}</td>
                   <td><span class="badge ${c.test_result === 'PASS' ? 'badge-ok' : 'badge-err'}">${escHtml(c.test_result || 'PASS')}</span></td>
-                  <td><button class="btn-sm btn-del" onclick="deleteSterilityCode(${c.id},'${escAttr(c.code)}')">Delete</button></td>
+                  <td><button class="btn-sm btn-del" onclick="deleteSterilityCode(${c.id},'${escAttr(c.code)}')">Sil</button></td>
                 </tr>
               `).join('')
             }
           </tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Generate Code Modal -->
-    <div id="codeModal" class="modal-overlay hidden">
-      <div class="modal-box">
-        <div class="modal-header"><h3>Generate Sterility Code</h3><button class="modal-close" onclick="closeCodeModal()">&times;</button></div>
-        <form id="codeForm" class="modal-form">
-          <label>Product Name *<input type="text" id="scProduct" required placeholder="e.g. Nasopharyngeal Swab"></label>
-          <div class="form-row">
-            <label>Catalog No<input type="text" id="scCatalog" placeholder="e.g. NTS-001"></label>
-            <label>Batch No<input type="text" id="scBatch" placeholder="e.g. B2024001"></label>
-          </div>
-          <div class="form-row">
-            <label>Customer Name<input type="text" id="scCustomer"></label>
-            <label>Company<input type="text" id="scCompany"></label>
-          </div>
-          <div class="form-row">
-            <label>Invoice Date *<input type="date" id="scInvoice" required></label>
-            <label>Manufacture Date<input type="date" id="scMfg"></label>
-          </div>
-          <label>Expiry Date<input type="date" id="scExpiry"></label>
-          <label>Notes<textarea id="scNotes" rows="2"></textarea></label>
-          <label>Test Result
-            <select id="scResult">
-              <option value="PASS">PASS</option>
-              <option value="FAIL">FAIL</option>
-            </select>
-          </label>
-          <div class="modal-footer">
-            <button type="button" class="btn-cancel" onclick="closeCodeModal()">Cancel</button>
-            <button type="submit" class="btn-primary">Generate Code</button>
-          </div>
-        </form>
-        <div id="generatedCode" class="generated-code hidden">
-          <h4>Generated Code:</h4>
-          <div class="code-display" id="codeDisplay"></div>
-          <button class="btn-sm" onclick="copyCode()">Copy</button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.getElementById('codeForm').addEventListener('submit', genSterilityCode);
+    </div>`;
 }
 
 function openGenCode() {
-  document.getElementById('scInvoice').value = new Date().toISOString().slice(0,10);
-  document.getElementById('generatedCode').classList.add('hidden');
-  document.getElementById('codeModal').classList.remove('hidden');
+  document.getElementById('steriForm').reset();
+  document.getElementById('scInvoice').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('generatedCodeBox').classList.add('hidden');
+  document.getElementById('sterilityModal').classList.remove('hidden');
 }
-function closeCodeModal() { document.getElementById('codeModal').classList.add('hidden'); }
+function closeGenCode() { document.getElementById('sterilityModal').classList.add('hidden'); }
 
-async function genSterilityCode(e) {
+document.getElementById('steriClose').addEventListener('click', closeGenCode);
+document.getElementById('steriCancelBtn').addEventListener('click', closeGenCode);
+
+document.getElementById('steriForm').addEventListener('submit', async e => {
   e.preventDefault();
   const payload = {
-    product_name: document.getElementById('scProduct').value,
-    catalog_no: document.getElementById('scCatalog').value,
-    batch_no: document.getElementById('scBatch').value,
-    customer_name: document.getElementById('scCustomer').value,
+    product_name:     document.getElementById('scProduct').value,
+    catalog_no:       document.getElementById('scCatalog').value,
+    batch_no:         document.getElementById('scBatch').value,
+    customer_name:    document.getElementById('scCustomer').value,
     customer_company: document.getElementById('scCompany').value,
-    invoice_date: document.getElementById('scInvoice').value,
+    invoice_date:     document.getElementById('scInvoice').value,
     manufacture_date: document.getElementById('scMfg').value,
-    expiry_date: document.getElementById('scExpiry').value,
-    notes: document.getElementById('scNotes').value,
-    test_result: document.getElementById('scResult').value
+    expiry_date:      document.getElementById('scExpiry').value,
+    notes:            document.getElementById('scNotes').value,
+    test_result:      document.getElementById('scResult').value
   };
+  const btn = document.querySelector('#steriForm [type=submit]');
+  btn.disabled = true; btn.textContent = 'Oluşturuluyor...';
   const res = await api('/api/sterility', { method: 'POST', body: payload });
+  btn.disabled = false; btn.textContent = 'Kod Oluştur';
   if (res && res.code && !res.error) {
-    toast('Code generated: ' + res.code);
+    toast('Kod oluşturuldu: ' + res.code);
     document.getElementById('codeDisplay').textContent = res.code;
-    document.getElementById('generatedCode').classList.remove('hidden');
-    document.getElementById('codeForm').reset();
-    setTimeout(() => renderSterility(), 500);
+    document.getElementById('generatedCodeBox').classList.remove('hidden');
+    document.getElementById('steriForm').reset();
+    document.getElementById('scInvoice').value = new Date().toISOString().slice(0, 10);
+    if (currentPage === 'sterility') renderSterility();
   } else {
-    toast(res?.error || 'Failed to generate code.', 'err');
+    toast(res?.error || 'Kod oluşturulamadı.', 'err');
   }
-}
+});
 
 function copyCode() {
   const code = document.getElementById('codeDisplay').textContent;
-  navigator.clipboard.writeText(code).then(() => toast('Code copied to clipboard!'));
+  navigator.clipboard.writeText(code).then(() => toast('Kod kopyalandı!'));
 }
 
 async function deleteSterilityCode(id, code) {
-  if (!confirm('Delete sterility code "' + code + '"?')) return;
+  if (!confirm('Sterilite kodu "' + code + '" silinsin mi?')) return;
   const res = await api('/api/sterility/' + id, { method: 'DELETE' });
-  if (res && res.message && !res.error) { toast('Code deleted.'); renderSterility(); }
-  else toast(res?.error || 'Failed.', 'err');
+  if (res && res.message && !res.error) { toast('Kod silindi.'); renderSterility(); }
+  else toast(res?.error || 'Silinemedi.', 'err');
+}
+
+/* ══════════════════════════════════════════════════════
+   SİPARİŞ TAKİP
+══════════════════════════════════════════════════════ */
+let allOrders = [];
+
+const orderStatusTr = s => ({
+  received: 'Alındı', processing: 'İşleme Alındı', preparing: 'Hazırlanıyor',
+  shipped: 'Kargoya Verildi', delivered: 'Teslim Edildi', cancelled: 'İptal Edildi'
+}[s] || s);
+
+const orderBadgeCls = s => ({
+  received: 'badge-new', processing: 'badge-read', preparing: 'badge-read',
+  shipped: 'badge-featured', delivered: 'badge-ok', cancelled: 'badge-err'
+}[s] || '');
+
+async function renderOrders() {
+  const actions = document.getElementById('pageActions');
+  actions.innerHTML = '<button class="btn-add" id="addOrderBtn"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2V14M2 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Sipariş Ekle</button>';
+  document.getElementById('addOrderBtn').addEventListener('click', () => openOrderModal());
+
+  document.getElementById('contentBody').innerHTML = `
+    <div class="section-card">
+      <div class="sc-toolbar">
+        <div class="sc-search"><svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6" cy="6" r="5" stroke="#5A7184" stroke-width="1.3"/><path d="M10 10L13 13" stroke="#5A7184" stroke-width="1.3" stroke-linecap="round"/></svg><input type="text" id="orderSearch" placeholder="Müşteri, ürün, takip kodu..."/></div>
+        <div class="sc-filter"><select id="orderStatusFilter"><option value="">Tüm Durumlar</option><option value="received">Alındı</option><option value="processing">İşleme Alındı</option><option value="preparing">Hazırlanıyor</option><option value="shipped">Kargoya Verildi</option><option value="delivered">Teslim Edildi</option><option value="cancelled">İptal Edildi</option></select></div>
+      </div>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr><th>Takip Kodu</th><th>Müşteri</th><th>Şirket</th><th>Ürün</th><th>Miktar</th><th>Durum</th><th>Tarih</th><th>İşlemler</th></tr></thead>
+        <tbody id="orderTbody"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">Yükleniyor...</td></tr></tbody>
+      </table></div>
+    </div>`;
+
+  allOrders = await api('/api/orders') || [];
+  renderOrderTable(allOrders);
+
+  document.getElementById('orderSearch').addEventListener('input', filterOrders);
+  document.getElementById('orderStatusFilter').addEventListener('change', filterOrders);
+
+  function filterOrders() {
+    const q  = document.getElementById('orderSearch').value.toLowerCase();
+    const st = document.getElementById('orderStatusFilter').value;
+    renderOrderTable(allOrders.filter(o =>
+      (!q  || (o.customer_name||'').toLowerCase().includes(q) || (o.product_name||'').toLowerCase().includes(q) || (o.tracking_code||'').toLowerCase().includes(q) || (o.company||'').toLowerCase().includes(q)) &&
+      (!st || o.status === st)
+    ));
+  }
+}
+
+function renderOrderTable(orders) {
+  const tbody = document.getElementById('orderTbody');
+  if (!orders.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>Sipariş bulunamadı.</p></div></td></tr>'; return; }
+  tbody.innerHTML = orders.map(o => `
+    <tr>
+      <td><code style="font-size:.75rem;color:#0A5C8A;font-weight:600">${escHtml(o.tracking_code)}</code></td>
+      <td><strong>${escHtml(o.customer_name)}</strong>${o.customer_email ? '<br/><small style="color:var(--muted)">' + escHtml(o.customer_email) + '</small>' : ''}</td>
+      <td>${escHtml(o.company || '—')}</td>
+      <td>${escHtml(o.product_name)}</td>
+      <td>${o.quantity || 1}</td>
+      <td>
+        <span class="badge ${orderBadgeCls(o.status)}">${orderStatusTr(o.status)}</span>
+        ${o.status_note ? '<br/><small style="color:var(--muted)">' + escHtml(o.status_note) + '</small>' : ''}
+      </td>
+      <td style="font-size:.8rem;color:var(--muted)">${new Date(o.created_at).toLocaleDateString('tr-TR')}</td>
+      <td style="display:flex;gap:6px">
+        <button class="btn-sm btn-edit" onclick="openOrderModal(${o.id})">Düzenle</button>
+        <button class="btn-sm btn-del" onclick="deleteOrder(${o.id})">Sil</button>
+      </td>
+    </tr>`).join('');
+}
+
+function openOrderModal(id = null) {
+  const modal = document.getElementById('orderModal');
+  document.getElementById('orderForm').reset();
+  document.getElementById('omId').value = '';
+  document.getElementById('omTitle').textContent = id ? 'Siparişi Düzenle' : 'Yeni Sipariş Ekle';
+  if (id) {
+    const o = allOrders.find(x => x.id === id);
+    if (!o) return;
+    document.getElementById('omId').value           = o.id;
+    document.getElementById('omCustomerName').value = o.customer_name || '';
+    document.getElementById('omCompany').value      = o.company || '';
+    document.getElementById('omEmail').value        = o.customer_email || '';
+    document.getElementById('omPhone').value        = o.customer_phone || '';
+    document.getElementById('omProductName').value  = o.product_name || '';
+    document.getElementById('omQuantity').value     = o.quantity || 1;
+    document.getElementById('omStatus').value       = o.status || 'received';
+    document.getElementById('omStatusNote').value   = o.status_note || '';
+    document.getElementById('omNotes').value        = o.notes || '';
+  }
+  modal.classList.remove('hidden');
+}
+
+document.getElementById('omClose').addEventListener('click', () => document.getElementById('orderModal').classList.add('hidden'));
+document.getElementById('omCancelBtn').addEventListener('click', () => document.getElementById('orderModal').classList.add('hidden'));
+
+document.getElementById('orderForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('omId').value;
+  const body = {
+    customer_name:  document.getElementById('omCustomerName').value,
+    company:        document.getElementById('omCompany').value,
+    customer_email: document.getElementById('omEmail').value,
+    customer_phone: document.getElementById('omPhone').value,
+    product_name:   document.getElementById('omProductName').value,
+    quantity:       document.getElementById('omQuantity').value,
+    status:         document.getElementById('omStatus').value,
+    status_note:    document.getElementById('omStatusNote').value,
+    notes:          document.getElementById('omNotes').value,
+  };
+  const btn = e.target.querySelector('[type=submit]');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  const res = await api(id ? `/api/orders/${id}` : '/api/orders', { method: id ? 'PUT' : 'POST', body });
+  btn.disabled = false; btn.textContent = 'Kaydet';
+  if (res && !res.error) {
+    document.getElementById('orderModal').classList.add('hidden');
+    const msg = id ? 'Sipariş güncellendi' : ('Sipariş oluşturuldu' + (res.tracking_code ? ' — ' + res.tracking_code : ''));
+    toast(msg);
+    renderOrders();
+  } else toast(res?.error || 'Hata oluştu', 'err');
+});
+
+async function deleteOrder(id) {
+  const o = allOrders.find(x => x.id === id);
+  const name = o ? o.customer_name : 'bu sipariş';
+  if (!confirm(`"${name}" siparişini silmek istediğinizden emin misiniz?`)) return;
+  const res = await api(`/api/orders/${id}`, { method: 'DELETE' });
+  if (res && !res.error) { toast('Sipariş silindi'); renderOrders(); }
+  else toast(res?.error || 'Hata', 'err');
 }
 
 /* ══════════════════════════════════════════════════════
