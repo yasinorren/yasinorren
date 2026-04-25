@@ -737,109 +737,123 @@ async function deleteCategory(id, name) {
 
 /* ══════════════════════════════════════════════════════
    CATEGORY PRODUCTS MANAGEMENT
+   Ürünler liste olarak contentBody'de gösterilir (modal yok).
+   Ekleme/düzenleme tek modal ile yapılır.
 ══════════════════════════════════════════════════════ */
-let currentCatProductsCatId = null;
-let catProductsCache = [];
-
-let _catProdsClickCtrl = null;
+let currentCatProductsCatId   = null;
+let currentCatProductsCatName = '';
+let catProductsCache          = [];
+let _catProdsCtrl             = null;
 
 async function openCatProducts(catId, catName) {
-  currentCatProductsCatId = catId;
-  document.getElementById('catProdsTitle').textContent = catName + ' — Ürünler';
-  document.getElementById('catProdsModal').classList.remove('hidden');
+  currentCatProductsCatId   = catId;
+  currentCatProductsCatName = catName;
+  document.getElementById('pageTitle').textContent        = catName + ' — Ürünler';
+  document.getElementById('breadcrumbCurrent').textContent = catName + ' Ürünleri';
+  document.getElementById('pageActions').innerHTML =
+    `<button class="btn-sm" id="backToCatsBtn" style="margin-right:8px">← Kategoriler</button>` +
+    `<button class="btn-add" id="addCatProdBtn">+ Ürün Ekle</button>`;
+  document.getElementById('backToCatsBtn').addEventListener('click', renderCategories);
+  document.getElementById('addCatProdBtn').addEventListener('click', openAddCatProduct);
   await loadCatProducts();
 }
 
-function closeCatProdsModal() {
-  document.getElementById('catProdsModal').classList.add('hidden');
-}
-
 async function loadCatProducts() {
-  const content = document.getElementById('catProdsBody');
-  content.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Yükleniyor...</div>';
+  const body = document.getElementById('contentBody');
+  body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
   const products = await api('/api/categories/' + currentCatProductsCatId + '/products');
   if (!Array.isArray(products)) {
-    content.innerHTML = '<p style="padding:20px;color:#c00">Ürünler yüklenemedi.</p>';
+    body.innerHTML = '<p style="padding:48px;text-align:center;color:#c00">Ürünler yüklenemedi.</p>';
     return;
   }
   catProductsCache = products;
+
   if (products.length === 0) {
-    content.innerHTML = '<p style="padding:24px;color:var(--muted);text-align:center">Bu kategoride henüz ürün yok. &ldquo;+ Ürün Ekle&rdquo; butonuna basın.</p>';
+    body.innerHTML = `
+      <div class="section-card">
+        <p style="padding:48px;text-align:center;color:var(--muted)">Bu kategoride henüz ürün yok.<br><br>
+          <button class="btn-primary-a" onclick="openAddCatProduct()">+ İlk Ürünü Ekle</button>
+        </p>
+      </div>`;
     return;
   }
-  content.innerHTML = `
-    <div class="table-wrap" style="max-height:380px;overflow-y:auto">
-      <table class="data-table">
-        <thead><tr><th>#</th><th>Marka</th><th>Stok Kodu</th><th>Ürün Adı</th><th>Amaç</th><th>İşlem</th></tr></thead>
-        <tbody>
-          ${products.map((p, i) => `
-            <tr>
-              <td style="color:var(--muted);font-size:.78rem">${i + 1}</td>
-              <td><span class="brand-badge" style="background:#EAF4FB;color:#0A5C8A;padding:2px 8px;border-radius:50px;font-size:.75rem">${escHtml(p.brand || '-')}</span></td>
-              <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.stock_code || '-')}</code></td>
-              <td><strong>${escHtml(p.stock_name)}</strong></td>
-              <td style="color:#5A7184;font-size:.85rem;max-width:200px">${escHtml(p.purpose || '-')}</td>
-              <td style="display:flex;gap:4px">
-                <button class="btn-sm btn-edit" data-action="cp-edit" data-id="${p.id}">Düzenle</button>
-                <button class="btn-sm btn-del"  data-action="cp-del"  data-id="${p.id}">Sil</button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
+
+  body.innerHTML = `
+    <div class="section-card">
+      <div class="sc-head"><h3>${escHtml(currentCatProductsCatName)} — Ürünler <span class="badge badge-ok">${products.length}</span></h3></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Görsel</th><th>Marka</th><th>Stok Kodu</th><th>Ürün Adı</th><th>Amaç</th><th>İşlem</th></tr></thead>
+          <tbody>
+            ${products.map((p, i) => `
+              <tr>
+                <td style="color:var(--muted);font-size:.78rem">${i + 1}</td>
+                <td>${p.image_url
+                  ? `<img src="${escHtml(p.image_url)}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--border)" onerror="this.style.display='none'">`
+                  : '<span style="color:var(--muted);font-size:.75rem">—</span>'}</td>
+                <td><span class="brand-badge">${escHtml(p.brand || '-')}</span></td>
+                <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.stock_code || '-')}</code></td>
+                <td><strong>${escHtml(p.stock_name)}</strong></td>
+                <td style="color:#5A7184;font-size:.85rem;max-width:180px">${escHtml(p.purpose || '-')}</td>
+                <td style="display:flex;gap:4px">
+                  <button class="btn-sm btn-edit" data-action="cp-edit" data-id="${p.id}">Düzenle</button>
+                  <button class="btn-sm btn-del"  data-action="cp-del"  data-id="${p.id}">Sil</button>
+                </td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>`;
 
-  if (_catProdsClickCtrl) _catProdsClickCtrl.abort();
-  _catProdsClickCtrl = new AbortController();
-  content.addEventListener('click', e => {
+  if (_catProdsCtrl) _catProdsCtrl.abort();
+  _catProdsCtrl = new AbortController();
+  body.addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
-    const id  = parseInt(btn.dataset.id);
+    const id = parseInt(btn.dataset.id);
     if (btn.dataset.action === 'cp-edit') openEditCatProduct(id);
     if (btn.dataset.action === 'cp-del')  deleteCatProduct(id);
-  }, { signal: _catProdsClickCtrl.signal });
-}
-
-function _openCatProdForm() {
-  document.getElementById('catProdsModal').classList.add('hidden');
-  document.getElementById('catProdFormModal').classList.remove('hidden');
+  }, { signal: _catProdsCtrl.signal });
 }
 
 function openAddCatProduct() {
   document.getElementById('catProdFormTitle').textContent = 'Ürün Ekle';
-  document.getElementById('cpfId').value = '';
-  document.getElementById('cpfCatId').value = currentCatProductsCatId;
-  document.getElementById('cpfBrand').value = 'ORGAMİK';
-  document.getElementById('cpfCode').value = '';
-  document.getElementById('cpfName').value = '';
+  document.getElementById('cpfId').value      = '';
+  document.getElementById('cpfCatId').value   = currentCatProductsCatId;
+  document.getElementById('cpfBrand').value   = 'ORGAMİK';
+  document.getElementById('cpfCode').value    = '';
+  document.getElementById('cpfName').value    = '';
   document.getElementById('cpfPurpose').value = '';
-  document.getElementById('cpfFeatures').value = '';
-  document.getElementById('cpfImageUrl').value = '';
+  document.getElementById('cpfFeatures').value  = '';
+  document.getElementById('cpfImageUrl').value  = '';
   document.getElementById('cpfImgPreview').innerHTML = '';
-  document.getElementById('cpfOrder').value = '0';
-  _openCatProdForm();
+  document.getElementById('cpfOrder').value   = '0';
+  document.getElementById('catProdFormModal').classList.remove('hidden');
 }
 
 function openEditCatProduct(id) {
   const p = catProductsCache.find(x => x.id === id);
   if (!p) return;
   document.getElementById('catProdFormTitle').textContent = 'Ürünü Düzenle';
-  document.getElementById('cpfId').value = p.id;
-  document.getElementById('cpfCatId').value = currentCatProductsCatId;
-  document.getElementById('cpfBrand').value = p.brand || '';
-  document.getElementById('cpfCode').value = p.stock_code || '';
-  document.getElementById('cpfName').value = p.stock_name || '';
+  document.getElementById('cpfId').value      = p.id;
+  document.getElementById('cpfCatId').value   = currentCatProductsCatId;
+  document.getElementById('cpfBrand').value   = p.brand || '';
+  document.getElementById('cpfCode').value    = p.stock_code || '';
+  document.getElementById('cpfName').value    = p.stock_name || '';
   document.getElementById('cpfPurpose').value = p.purpose || '';
-  document.getElementById('cpfFeatures').value = p.features || '';
-  document.getElementById('cpfImageUrl').value = p.image_url || '';
+  document.getElementById('cpfFeatures').value  = p.features || '';
+  document.getElementById('cpfImageUrl').value  = p.image_url || '';
   const prev = document.getElementById('cpfImgPreview');
-  prev.innerHTML = p.image_url ? `<img src="${escHtml(p.image_url)}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'">` : '';
-  document.getElementById('cpfOrder').value = p.order_index || 0;
-  _openCatProdForm();
+  prev.innerHTML = p.image_url
+    ? `<img src="${escHtml(p.image_url)}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'">`
+    : '';
+  document.getElementById('cpfOrder').value   = p.order_index || 0;
+  document.getElementById('catProdFormModal').classList.remove('hidden');
 }
 
 function closeCatProdForm() {
   document.getElementById('catProdFormModal').classList.add('hidden');
-  document.getElementById('catProdsModal').classList.remove('hidden');
 }
 
 document.getElementById('catProdForm').addEventListener('submit', async e => {
