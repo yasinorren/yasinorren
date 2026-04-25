@@ -606,38 +606,40 @@ function renderSettings() {
    CATEGORIES & MENUS
 ══════════════════════════════════════════════════════ */
 let allCategories = [];
-let _catClickCtrl = null;
 
 async function renderCategories() {
   const body = document.getElementById('contentBody');
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-
   document.getElementById('pageActions').innerHTML =
-    '<button class="btn-add" id="addCatBtn"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2V14M2 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Kategori Ekle</button>';
-  document.getElementById('addCatBtn').addEventListener('click', openAddCategory);
+    '<button class="btn-add" onclick="openAddCategory()"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 2V14M2 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Kategori Ekle</button>';
 
   const rawCats = await api('/api/categories');
-  if (!Array.isArray(rawCats)) { body.innerHTML = '<p style="padding:48px;text-align:center;color:#c00">Kategoriler yüklenemedi.</p>'; return; }
+  if (!Array.isArray(rawCats)) {
+    body.innerHTML = '<p style="padding:48px;text-align:center;color:#c00">Kategoriler yüklenemedi.</p>';
+    return;
+  }
   allCategories = [];
-  function flatCats(arr) { arr.forEach(c => { const kids = c.children||[]; delete c.children; allCategories.push(c); if(kids.length) flatCats(kids); }); }
+  function flatCats(arr) {
+    arr.forEach(c => { const kids = c.children||[]; delete c.children; allCategories.push(c); if(kids.length) flatCats(kids); });
+  }
   flatCats(rawCats);
 
   function buildTree(cats, parentId, level) {
     return cats.filter(c => c.parent_id === parentId).map(c => {
       const indent = '&nbsp;'.repeat(level * 4);
-      const children = buildTree(cats, c.id, level + 1);
+      const name   = escAttr(c.name);
       return `<tr>
         <td>${indent}<strong>${escHtml(c.name)}</strong></td>
         <td><code>${escHtml(c.slug)}</code></td>
-        <td>${c.description ? escHtml(c.description.substring(0,60)) + '...' : '-'}</td>
+        <td>${c.description ? escHtml(c.description.substring(0,60))+'...' : '-'}</td>
         <td>${c.parent_id ? escHtml((allCategories.find(x=>x.id===c.parent_id)||{}).name||'-') : '<em>Kök</em>'}</td>
         <td>${c.is_active ? '<span class="badge badge-ok">Aktif</span>' : '<span class="badge badge-err">Pasif</span>'}</td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn-sm btn-edit" data-action="cat-edit" data-id="${c.id}">Düzenle</button>
-          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" data-action="cat-prods" data-id="${c.id}" data-name="${escAttr(c.name)}">Ürünler</button>
-          <button class="btn-sm btn-del" data-action="cat-del" data-id="${c.id}" data-name="${escAttr(c.name)}">Sil</button>
+          <button class="btn-sm btn-edit" onclick="openEditCategory(${c.id})">Düzenle</button>
+          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" onclick="openCatProducts(${c.id},'${name}')">Ürünler</button>
+          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${name}')">Sil</button>
         </td>
-      </tr>` + children;
+      </tr>` + buildTree(cats, c.id, level + 1);
     }).join('');
   }
 
@@ -651,18 +653,6 @@ async function renderCategories() {
         </table>
       </div>
     </div>`;
-
-  if (_catClickCtrl) _catClickCtrl.abort();
-  _catClickCtrl = new AbortController();
-  body.addEventListener('click', e => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const action = btn.dataset.action;
-    const id = parseInt(btn.dataset.id);
-    if (action === 'cat-edit')  openEditCategory(id);
-    if (action === 'cat-del')   deleteCategory(id, btn.dataset.name);
-    if (action === 'cat-prods') openCatProducts(id, btn.dataset.name);
-  }, { signal: _catClickCtrl.signal });
 }
 
 function openAddCategory() {
@@ -737,118 +727,95 @@ async function deleteCategory(id, name) {
 
 /* ══════════════════════════════════════════════════════
    CATEGORY PRODUCTS MANAGEMENT
-   Ürünler liste olarak contentBody'de gösterilir (modal yok).
-   Ekleme/düzenleme tek modal ile yapılır.
 ══════════════════════════════════════════════════════ */
 let currentCatProductsCatId   = null;
 let currentCatProductsCatName = '';
 let catProductsCache          = [];
-let _catProdsCtrl             = null;
 
 async function openCatProducts(catId, catName) {
   currentCatProductsCatId   = catId;
   currentCatProductsCatName = catName;
-  document.getElementById('pageTitle').textContent        = catName + ' — Ürünler';
+  document.getElementById('pageTitle').textContent         = catName + ' — Ürünler';
   document.getElementById('breadcrumbCurrent').textContent = catName + ' Ürünleri';
   document.getElementById('pageActions').innerHTML =
-    `<button class="btn-sm" id="backToCatsBtn" style="margin-right:8px">← Kategoriler</button>` +
-    `<button class="btn-add" id="addCatProdBtn">+ Ürün Ekle</button>`;
-  document.getElementById('backToCatsBtn').addEventListener('click', renderCategories);
-  document.getElementById('addCatProdBtn').addEventListener('click', openAddCatProduct);
+    '<button class="btn-sm" onclick="renderCategories()" style="margin-right:8px">← Kategoriler</button>' +
+    '<button class="btn-add" onclick="openAddCatProduct()">+ Ürün Ekle</button>';
   await loadCatProducts();
 }
 
 async function loadCatProducts() {
   const body = document.getElementById('contentBody');
   body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-
-  const products = await api('/api/categories/' + currentCatProductsCatId + '/products');
-  if (!Array.isArray(products)) {
+  const prods = await api('/api/categories/' + currentCatProductsCatId + '/products');
+  if (!Array.isArray(prods)) {
     body.innerHTML = '<p style="padding:48px;text-align:center;color:#c00">Ürünler yüklenemedi.</p>';
     return;
   }
-  catProductsCache = products;
-
-  if (products.length === 0) {
-    body.innerHTML = `
-      <div class="section-card">
-        <p style="padding:48px;text-align:center;color:var(--muted)">Bu kategoride henüz ürün yok.<br><br>
-          <button class="btn-primary-a" onclick="openAddCatProduct()">+ İlk Ürünü Ekle</button>
-        </p>
-      </div>`;
+  catProductsCache = prods;
+  if (prods.length === 0) {
+    body.innerHTML = `<div class="section-card"><p style="padding:48px;text-align:center;color:var(--muted)">
+      Bu kategoride henüz ürün yok.<br><br>
+      <button class="btn-primary-a" onclick="openAddCatProduct()">+ İlk Ürünü Ekle</button>
+    </p></div>`;
     return;
   }
-
+  const rows = prods.map((p, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:.78rem">${i + 1}</td>
+      <td>${p.image_url ? `<img src="${escHtml(p.image_url)}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--border)" onerror="this.style.display='none'">` : '—'}</td>
+      <td><span class="brand-badge">${escHtml(p.brand || '-')}</span></td>
+      <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.stock_code || '-')}</code></td>
+      <td><strong>${escHtml(p.stock_name)}</strong></td>
+      <td style="color:#5A7184;font-size:.85rem;max-width:180px">${escHtml(p.purpose || '-')}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn-sm btn-edit" onclick="openEditCatProduct(${p.id})">Düzenle</button>
+        <button class="btn-sm btn-del"  onclick="deleteCatProduct(${p.id})">Sil</button>
+      </td>
+    </tr>`).join('');
   body.innerHTML = `
     <div class="section-card">
-      <div class="sc-head"><h3>${escHtml(currentCatProductsCatName)} — Ürünler <span class="badge badge-ok">${products.length}</span></h3></div>
+      <div class="sc-head"><h3>${escHtml(currentCatProductsCatName)} — Ürünler <span class="badge badge-ok">${prods.length}</span></h3></div>
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr><th>#</th><th>Görsel</th><th>Marka</th><th>Stok Kodu</th><th>Ürün Adı</th><th>Amaç</th><th>İşlem</th></tr></thead>
-          <tbody>
-            ${products.map((p, i) => `
-              <tr>
-                <td style="color:var(--muted);font-size:.78rem">${i + 1}</td>
-                <td>${p.image_url
-                  ? `<img src="${escHtml(p.image_url)}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--border)" onerror="this.style.display='none'">`
-                  : '<span style="color:var(--muted);font-size:.75rem">—</span>'}</td>
-                <td><span class="brand-badge">${escHtml(p.brand || '-')}</span></td>
-                <td><code style="font-size:.78rem;color:var(--muted)">${escHtml(p.stock_code || '-')}</code></td>
-                <td><strong>${escHtml(p.stock_name)}</strong></td>
-                <td style="color:#5A7184;font-size:.85rem;max-width:180px">${escHtml(p.purpose || '-')}</td>
-                <td style="display:flex;gap:4px">
-                  <button class="btn-sm btn-edit" data-action="cp-edit" data-id="${p.id}">Düzenle</button>
-                  <button class="btn-sm btn-del"  data-action="cp-del"  data-id="${p.id}">Sil</button>
-                </td>
-              </tr>`).join('')}
-          </tbody>
+          <tbody>${rows}</tbody>
         </table>
       </div>
     </div>`;
-
-  if (_catProdsCtrl) _catProdsCtrl.abort();
-  _catProdsCtrl = new AbortController();
-  body.addEventListener('click', e => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const id = parseInt(btn.dataset.id);
-    if (btn.dataset.action === 'cp-edit') openEditCatProduct(id);
-    if (btn.dataset.action === 'cp-del')  deleteCatProduct(id);
-  }, { signal: _catProdsCtrl.signal });
 }
 
 function openAddCatProduct() {
-  document.getElementById('catProdFormTitle').textContent = 'Ürün Ekle';
-  document.getElementById('cpfId').value      = '';
-  document.getElementById('cpfCatId').value   = currentCatProductsCatId;
-  document.getElementById('cpfBrand').value   = 'ORGAMİK';
-  document.getElementById('cpfCode').value    = '';
-  document.getElementById('cpfName').value    = '';
-  document.getElementById('cpfPurpose').value = '';
-  document.getElementById('cpfFeatures').value  = '';
-  document.getElementById('cpfImageUrl').value  = '';
-  document.getElementById('cpfImgPreview').innerHTML = '';
-  document.getElementById('cpfOrder').value   = '0';
+  document.getElementById('catProdFormTitle').textContent  = 'Ürün Ekle';
+  document.getElementById('cpfId').value                   = '';
+  document.getElementById('cpfCatId').value                = currentCatProductsCatId;
+  document.getElementById('cpfBrand').value                = 'ORGAMİK';
+  document.getElementById('cpfCode').value                 = '';
+  document.getElementById('cpfName').value                 = '';
+  document.getElementById('cpfPurpose').value              = '';
+  document.getElementById('cpfFeatures').value             = '';
+  document.getElementById('cpfImageUrl').value             = '';
+  document.getElementById('cpfImgPreview').innerHTML       = '';
+  document.getElementById('cpfOrder').value                = '0';
   document.getElementById('catProdFormModal').classList.remove('hidden');
 }
 
 function openEditCatProduct(id) {
   const p = catProductsCache.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('catProdFormTitle').textContent = 'Ürünü Düzenle';
-  document.getElementById('cpfId').value      = p.id;
-  document.getElementById('cpfCatId').value   = currentCatProductsCatId;
-  document.getElementById('cpfBrand').value   = p.brand || '';
-  document.getElementById('cpfCode').value    = p.stock_code || '';
-  document.getElementById('cpfName').value    = p.stock_name || '';
-  document.getElementById('cpfPurpose').value = p.purpose || '';
-  document.getElementById('cpfFeatures').value  = p.features || '';
-  document.getElementById('cpfImageUrl').value  = p.image_url || '';
+  document.getElementById('catProdFormTitle').textContent  = 'Ürünü Düzenle';
+  document.getElementById('cpfId').value                   = p.id;
+  document.getElementById('cpfCatId').value                = currentCatProductsCatId;
+  document.getElementById('cpfBrand').value                = p.brand || '';
+  document.getElementById('cpfCode').value                 = p.stock_code || '';
+  document.getElementById('cpfName').value                 = p.stock_name || '';
+  document.getElementById('cpfPurpose').value              = p.purpose || '';
+  document.getElementById('cpfFeatures').value             = p.features || '';
+  document.getElementById('cpfImageUrl').value             = p.image_url || '';
   const prev = document.getElementById('cpfImgPreview');
   prev.innerHTML = p.image_url
     ? `<img src="${escHtml(p.image_url)}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'">`
     : '';
-  document.getElementById('cpfOrder').value   = p.order_index || 0;
+  document.getElementById('cpfOrder').value                = p.order_index || 0;
   document.getElementById('catProdFormModal').classList.remove('hidden');
 }
 
