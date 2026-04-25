@@ -606,6 +606,7 @@ function renderSettings() {
    CATEGORIES & MENUS
 ══════════════════════════════════════════════════════ */
 let allCategories = [];
+let _catClickCtrl = null;
 
 async function renderCategories() {
   const body = document.getElementById('contentBody');
@@ -651,6 +652,8 @@ async function renderCategories() {
       </div>
     </div>`;
 
+  if (_catClickCtrl) _catClickCtrl.abort();
+  _catClickCtrl = new AbortController();
   body.addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -659,7 +662,7 @@ async function renderCategories() {
     if (action === 'cat-edit')  openEditCategory(id);
     if (action === 'cat-del')   deleteCategory(id, btn.dataset.name);
     if (action === 'cat-prods') openCatProducts(id, btn.dataset.name);
-  });
+  }, { signal: _catClickCtrl.signal });
 }
 
 function openAddCategory() {
@@ -738,9 +741,11 @@ async function deleteCategory(id, name) {
 let currentCatProductsCatId = null;
 let catProductsCache = [];
 
+let _catProdsClickCtrl = null;
+
 async function openCatProducts(catId, catName) {
   currentCatProductsCatId = catId;
-  document.getElementById('catProdsTitle').textContent = 'Products: ' + catName;
+  document.getElementById('catProdsTitle').textContent = catName + ' — Ürünler';
   document.getElementById('catProdsModal').classList.remove('hidden');
   await loadCatProducts();
 }
@@ -754,18 +759,18 @@ async function loadCatProducts() {
   content.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">Yükleniyor...</div>';
   const products = await api('/api/categories/' + currentCatProductsCatId + '/products');
   if (!Array.isArray(products)) {
-    content.innerHTML = '<p style="padding:20px;color:#c00">Failed to load products.</p>';
+    content.innerHTML = '<p style="padding:20px;color:#c00">Ürünler yüklenemedi.</p>';
     return;
   }
   catProductsCache = products;
   if (products.length === 0) {
-    content.innerHTML = '<p style="padding:24px;color:var(--muted);text-align:center">No products in this category yet. Click &ldquo;Add Product&rdquo; to get started.</p>';
+    content.innerHTML = '<p style="padding:24px;color:var(--muted);text-align:center">Bu kategoride henüz ürün yok. &ldquo;+ Ürün Ekle&rdquo; butonuna basın.</p>';
     return;
   }
   content.innerHTML = `
     <div class="table-wrap" style="max-height:380px;overflow-y:auto">
       <table class="data-table">
-        <thead><tr><th>#</th><th>Brand</th><th>Stock Code</th><th>Stock Name</th><th>Purpose</th><th>Actions</th></tr></thead>
+        <thead><tr><th>#</th><th>Marka</th><th>Stok Kodu</th><th>Ürün Adı</th><th>Amaç</th><th>İşlem</th></tr></thead>
         <tbody>
           ${products.map((p, i) => `
             <tr>
@@ -775,13 +780,28 @@ async function loadCatProducts() {
               <td><strong>${escHtml(p.stock_name)}</strong></td>
               <td style="color:#5A7184;font-size:.85rem;max-width:200px">${escHtml(p.purpose || '-')}</td>
               <td style="display:flex;gap:4px">
-                <button class="btn-sm btn-edit" onclick="openEditCatProduct(${p.id})">Edit</button>
-                <button class="btn-sm btn-del" onclick="deleteCatProduct(${p.id})">Delete</button>
+                <button class="btn-sm btn-edit" data-action="cp-edit" data-id="${p.id}">Düzenle</button>
+                <button class="btn-sm btn-del"  data-action="cp-del"  data-id="${p.id}">Sil</button>
               </td>
             </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
+
+  if (_catProdsClickCtrl) _catProdsClickCtrl.abort();
+  _catProdsClickCtrl = new AbortController();
+  content.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const id  = parseInt(btn.dataset.id);
+    if (btn.dataset.action === 'cp-edit') openEditCatProduct(id);
+    if (btn.dataset.action === 'cp-del')  deleteCatProduct(id);
+  }, { signal: _catProdsClickCtrl.signal });
+}
+
+function _openCatProdForm() {
+  document.getElementById('catProdsModal').classList.add('hidden');
+  document.getElementById('catProdFormModal').classList.remove('hidden');
 }
 
 function openAddCatProduct() {
@@ -796,7 +816,7 @@ function openAddCatProduct() {
   document.getElementById('cpfImageUrl').value = '';
   document.getElementById('cpfImgPreview').innerHTML = '';
   document.getElementById('cpfOrder').value = '0';
-  document.getElementById('catProdFormModal').classList.remove('hidden');
+  _openCatProdForm();
 }
 
 function openEditCatProduct(id) {
@@ -814,11 +834,12 @@ function openEditCatProduct(id) {
   const prev = document.getElementById('cpfImgPreview');
   prev.innerHTML = p.image_url ? `<img src="${escHtml(p.image_url)}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'">` : '';
   document.getElementById('cpfOrder').value = p.order_index || 0;
-  document.getElementById('catProdFormModal').classList.remove('hidden');
+  _openCatProdForm();
 }
 
 function closeCatProdForm() {
   document.getElementById('catProdFormModal').classList.add('hidden');
+  document.getElementById('catProdsModal').classList.remove('hidden');
 }
 
 document.getElementById('catProdForm').addEventListener('submit', async e => {
