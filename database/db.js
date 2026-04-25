@@ -147,6 +147,7 @@ db.exec(`
 /* ── Migrations (safe to run multiple times) ── */
 try { db.exec('ALTER TABLE products ADD COLUMN image_url TEXT'); } catch(e) { /* already exists */ }
 try { db.exec('ALTER TABLE category_products ADD COLUMN image_url TEXT'); } catch(e) { /* already exists */ }
+try { db.exec('ALTER TABLE category_products ADD COLUMN features TEXT'); } catch(e) { /* already exists */ }
 
 /* ── Content field migrations (INSERT OR IGNORE — safe to run multiple times) ── */
 const _addContent = db.prepare('INSERT OR IGNORE INTO site_content (section, key, value, label, type) VALUES (@section, @key, @value, @label, @type)');

@@ -334,6 +334,21 @@ h1,h2,h3,h4 { font-family: var(--ffh); line-height: 1.2; font-weight: 700; }
 .btn-inq:hover { background: var(--blue-dark); transform: translateY(-1px); }
 .no-products { padding: 48px; text-align: center; color: var(--muted); font-size: .95rem; }
 
+/* ── PRODUCT CARDS ── */
+.prod-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.prod-card { background: #fff; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; transition: box-shadow .2s, transform .2s; }
+.prod-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.1); transform: translateY(-2px); }
+.prod-card-img { width: 100%; aspect-ratio: 4/3; overflow: hidden; background: var(--bg2); }
+.prod-card-img img { width: 100%; height: 100%; object-fit: contain; padding: 12px; }
+.prod-card-body { padding: 16px; display: flex; flex-direction: column; flex: 1; gap: 8px; }
+.prod-card-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.prod-code { font-family: monospace; font-size: .78rem; color: var(--muted); }
+.prod-card-name { font-size: .97rem; font-weight: 600; color: var(--text); line-height: 1.35; }
+.prod-card-purpose { font-size: .82rem; color: var(--muted); line-height: 1.4; }
+.prod-features { margin: 4px 0 0 0; padding-left: 18px; font-size: .82rem; color: var(--text); line-height: 1.6; }
+.prod-features li { margin-bottom: 2px; }
+.prod-card-body .btn-inq { margin-top: auto; align-self: flex-start; }
+
 /* ── STERILITY VERIFY ── */
 .verify-card { background: #fff; border-radius: var(--r); padding: 36px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 32px; }
 .verify-search { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }

@@ -25,7 +25,7 @@
       verifyBtn:'Verify Code', codeValid:'VALID', codeInvalid:'CODE NOT FOUND',
       trackTitle:'Order Tracking', trackPlaceholder:'Enter tracking code — e.g. INN-ORD-2024-XXXXXXXX',
       trackBtn:'Track Order', trackFound:'Order Found', trackNotFound:'Order not found',
-      brand:'Brand', stockCode:'Stock Code', stockName:'Product Name', purpose:'Purpose of Use',
+      brand:'Brand', stockCode:'Stock Code', stockName:'Product Name', purpose:'Purpose of Use', inquire:'Inquire',
       noProducts:'No products listed for this category yet.',
       allRights:'All rights reserved.', langToggle:'TR'
     },
@@ -46,7 +46,7 @@
       verifyBtn:'Doğrula', codeValid:'GEÇERLİ', codeInvalid:'KOD BULUNAMADI',
       trackTitle:'Sipariş Takip', trackPlaceholder:'Takip kodu girin — örn: INN-ORD-2024-XXXXXXXX',
       trackBtn:'Takip Et', trackFound:'Sipariş Bulundu', trackNotFound:'Sipariş bulunamadı',
-      brand:'Marka', stockCode:'Stok Kodu', stockName:'Ürün Adı', purpose:'Kullanım Amacı',
+      brand:'Marka', stockCode:'Stok Kodu', stockName:'Ürün Adı', purpose:'Kullanım Amacı', inquire:'Teklif Al',
       noProducts:'Bu kategori için henüz ürün eklenmemiş.',
       allRights:'Tüm hakları saklıdır.', langToggle:'EN'
     }
@@ -367,23 +367,58 @@
         '</div></div>';
     }
 
+    var hasImages = products.some(function(p){ return p.image_url; });
+    var hasFeatures = products.some(function(p){ return p.features; });
+    var useCards = hasImages || hasFeatures;
+
     var tableHtml = '';
     if (products.length > 0) {
-      var rows = products.map(function (p, i) {
-        return '<tr>' +
-          '<td style="color:#888;font-size:.8rem">' + (i + 1) + '</td>' +
-          '<td><span class="brand-badge">' + esc(p.brand || '-') + '</span></td>' +
-          '<td style="font-family:monospace;font-size:.82rem;color:#5A7184">' + esc(p.stock_code || '-') + '</td>' +
-          '<td style="font-weight:500">' + esc(p.stock_name || '-') + '</td>' +
-          '<td style="color:#5A7184;font-size:.85rem">' + esc(p.purpose || '-') + '</td>' +
-          '<td><button class="btn-inq" onclick="window.__openInquiry(\'' + esc(p.stock_name) + '\',\'' + esc(p.stock_code) + '\')">Inquire</button></td>' +
-          '</tr>';
-      }).join('');
-      tableHtml = '<div class="products-section">' +
-        '<h3 style="margin-bottom:16px;font-size:1.1rem">Products <span class="count-badge">' + products.length + '</span></h3>' +
-        '<div class="table-wrapper"><table class="products-table">' +
-        '<thead><tr><th>#</th><th>' + t('brand') + '</th><th>' + t('stockCode') + '</th><th>' + t('stockName') + '</th><th>' + t('purpose') + '</th><th></th></tr></thead>' +
-        '<tbody>' + rows + '</tbody></table></div></div>';
+      if (useCards) {
+        var cards = products.map(function (p) {
+          var featuresHtml = '';
+          if (p.features) {
+            var lines = p.features.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+            if (lines.length > 0) {
+              featuresHtml = '<ul class="prod-features">' + lines.map(function(l){ return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
+            }
+          }
+          var imgHtml = p.image_url
+            ? '<div class="prod-card-img"><img src="' + esc(p.image_url) + '" alt="' + esc(p.stock_name) + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'"></div>'
+            : '';
+          return '<div class="prod-card">' +
+            imgHtml +
+            '<div class="prod-card-body">' +
+              '<div class="prod-card-top">' +
+                '<span class="brand-badge">' + esc(p.brand || '-') + '</span>' +
+                (p.stock_code ? '<span class="prod-code">' + esc(p.stock_code) + '</span>' : '') +
+              '</div>' +
+              '<div class="prod-card-name">' + esc(p.stock_name || '-') + '</div>' +
+              (p.purpose ? '<div class="prod-card-purpose">' + esc(p.purpose) + '</div>' : '') +
+              featuresHtml +
+              '<button class="btn-inq" onclick="window.__openInquiry(\'' + esc(p.stock_name) + '\',\'' + esc(p.stock_code) + '\')">' + t('inquire') + '</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+        tableHtml = '<div class="products-section">' +
+          '<h3 style="margin-bottom:16px;font-size:1.1rem">Ürünler <span class="count-badge">' + products.length + '</span></h3>' +
+          '<div class="prod-card-grid">' + cards + '</div></div>';
+      } else {
+        var rows = products.map(function (p, i) {
+          return '<tr>' +
+            '<td style="color:#888;font-size:.8rem">' + (i + 1) + '</td>' +
+            '<td><span class="brand-badge">' + esc(p.brand || '-') + '</span></td>' +
+            '<td style="font-family:monospace;font-size:.82rem;color:#5A7184">' + esc(p.stock_code || '-') + '</td>' +
+            '<td style="font-weight:500">' + esc(p.stock_name || '-') + '</td>' +
+            '<td style="color:#5A7184;font-size:.85rem">' + esc(p.purpose || '-') + '</td>' +
+            '<td><button class="btn-inq" onclick="window.__openInquiry(\'' + esc(p.stock_name) + '\',\'' + esc(p.stock_code) + '\')">' + t('inquire') + '</button></td>' +
+            '</tr>';
+        }).join('');
+        tableHtml = '<div class="products-section">' +
+          '<h3 style="margin-bottom:16px;font-size:1.1rem">Ürünler <span class="count-badge">' + products.length + '</span></h3>' +
+          '<div class="table-wrapper"><table class="products-table">' +
+          '<thead><tr><th>#</th><th>' + t('brand') + '</th><th>' + t('stockCode') + '</th><th>' + t('stockName') + '</th><th>' + t('purpose') + '</th><th></th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table></div></div>';
+      }
     } else if (subCats.length === 0) {
       tableHtml = '<p class="no-products">' + t('noProducts') + '</p>';
     }

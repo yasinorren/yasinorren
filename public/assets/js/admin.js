@@ -632,9 +632,9 @@ async function renderCategories() {
         <td>${c.parent_id ? escHtml((allCategories.find(x=>x.id===c.parent_id)||{}).name||'-') : '<em>Kök</em>'}</td>
         <td>${c.is_active ? '<span class="badge badge-ok">Aktif</span>' : '<span class="badge badge-err">Pasif</span>'}</td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn-sm btn-edit" onclick="openEditCategory(${c.id})">Düzenle</button>
-          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" onclick="openCatProducts(${c.id},'${escAttr(c.name)}')">Ürünler</button>
-          <button class="btn-sm btn-del" onclick="deleteCategory(${c.id},'${escAttr(c.name)}')">Sil</button>
+          <button class="btn-sm btn-edit" data-action="cat-edit" data-id="${c.id}">Düzenle</button>
+          <button class="btn-sm" style="background:#EAF4FB;color:#0A5C8A" data-action="cat-prods" data-id="${c.id}" data-name="${escAttr(c.name)}">Ürünler</button>
+          <button class="btn-sm btn-del" data-action="cat-del" data-id="${c.id}" data-name="${escAttr(c.name)}">Sil</button>
         </td>
       </tr>` + children;
     }).join('');
@@ -650,6 +650,16 @@ async function renderCategories() {
         </table>
       </div>
     </div>`;
+
+  body.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = parseInt(btn.dataset.id);
+    if (action === 'cat-edit')  openEditCategory(id);
+    if (action === 'cat-del')   deleteCategory(id, btn.dataset.name);
+    if (action === 'cat-prods') openCatProducts(id, btn.dataset.name);
+  });
 }
 
 function openAddCategory() {
@@ -775,13 +785,16 @@ async function loadCatProducts() {
 }
 
 function openAddCatProduct() {
-  document.getElementById('catProdFormTitle').textContent = 'Add Product';
+  document.getElementById('catProdFormTitle').textContent = 'Ürün Ekle';
   document.getElementById('cpfId').value = '';
   document.getElementById('cpfCatId').value = currentCatProductsCatId;
   document.getElementById('cpfBrand').value = 'ORGAMİK';
   document.getElementById('cpfCode').value = '';
   document.getElementById('cpfName').value = '';
   document.getElementById('cpfPurpose').value = '';
+  document.getElementById('cpfFeatures').value = '';
+  document.getElementById('cpfImageUrl').value = '';
+  document.getElementById('cpfImgPreview').innerHTML = '';
   document.getElementById('cpfOrder').value = '0';
   document.getElementById('catProdFormModal').classList.remove('hidden');
 }
@@ -789,13 +802,17 @@ function openAddCatProduct() {
 function openEditCatProduct(id) {
   const p = catProductsCache.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('catProdFormTitle').textContent = 'Edit Product';
+  document.getElementById('catProdFormTitle').textContent = 'Ürünü Düzenle';
   document.getElementById('cpfId').value = p.id;
   document.getElementById('cpfCatId').value = currentCatProductsCatId;
   document.getElementById('cpfBrand').value = p.brand || '';
   document.getElementById('cpfCode').value = p.stock_code || '';
   document.getElementById('cpfName').value = p.stock_name || '';
   document.getElementById('cpfPurpose').value = p.purpose || '';
+  document.getElementById('cpfFeatures').value = p.features || '';
+  document.getElementById('cpfImageUrl').value = p.image_url || '';
+  const prev = document.getElementById('cpfImgPreview');
+  prev.innerHTML = p.image_url ? `<img src="${escHtml(p.image_url)}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'">` : '';
   document.getElementById('cpfOrder').value = p.order_index || 0;
   document.getElementById('catProdFormModal').classList.remove('hidden');
 }
@@ -813,28 +830,30 @@ document.getElementById('catProdForm').addEventListener('submit', async e => {
     stock_code:  document.getElementById('cpfCode').value,
     stock_name:  document.getElementById('cpfName').value,
     purpose:     document.getElementById('cpfPurpose').value,
+    image_url:   document.getElementById('cpfImageUrl').value || null,
+    features:    document.getElementById('cpfFeatures').value || null,
     order_index: parseInt(document.getElementById('cpfOrder').value) || 0
   };
   const btn = e.target.querySelector('[type=submit]');
-  btn.disabled = true; btn.textContent = 'Saving...';
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
   const res = id
     ? await api('/api/categories/products/' + id, { method: 'PUT', body })
     : await api('/api/categories/' + catId + '/products', { method: 'POST', body });
-  btn.disabled = false; btn.textContent = 'Save';
+  btn.disabled = false; btn.textContent = 'Kaydet';
   if (res && !res.error) {
-    toast(id ? 'Product updated.' : 'Product added.');
+    toast(id ? 'Ürün güncellendi.' : 'Ürün eklendi.');
     closeCatProdForm();
     await loadCatProducts();
-  } else toast(res?.error || 'Failed to save.', 'err');
+  } else toast(res?.error || 'Kaydedilemedi.', 'err');
 });
 
 async function deleteCatProduct(id) {
   const p = catProductsCache.find(x => x.id === id);
-  const name = p ? p.stock_name : 'this product';
-  if (!confirm('Delete "' + name + '"?')) return;
+  const name = p ? p.stock_name : 'bu ürün';
+  if (!confirm('"' + name + '" ürününü silmek istediğinize emin misiniz?')) return;
   const res = await api('/api/categories/products/' + id, { method: 'DELETE' });
-  if (res && !res.error) { toast('Product deleted.'); await loadCatProducts(); }
-  else toast(res?.error || 'Failed.', 'err');
+  if (res && !res.error) { toast('Ürün silindi.'); await loadCatProducts(); }
+  else toast(res?.error || 'Silinemedi.', 'err');
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1327,6 +1346,20 @@ async function saveSection(section) {
   if (cc) cc.addEventListener('click', closeCatModal);
   if (cb) cb.addEventListener('click', closeCatModal);
   if (cf) cf.addEventListener('submit', saveCategoryForm);
+})();
+
+(function bindCatProdForm() {
+  const cc = document.getElementById('cpfCloseBtn');
+  const cb = document.getElementById('cpfCancelBtn');
+  const mp = document.getElementById('cpfMediaPickBtn');
+  const iu = document.getElementById('cpfImageUrl');
+  if (cc) cc.addEventListener('click', closeCatProdForm);
+  if (cb) cb.addEventListener('click', closeCatProdForm);
+  if (mp) mp.addEventListener('click', () => openMediaPicker('cpf.imageUrl', 'cpfImageUrl'));
+  if (iu) iu.addEventListener('input', () => {
+    const prev = document.getElementById('cpfImgPreview');
+    if (prev) prev.innerHTML = iu.value ? `<img src="${escHtml(iu.value)}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)" onerror="this.style.display='none'">` : '';
+  });
 })();
 
 function escHtml(s) {

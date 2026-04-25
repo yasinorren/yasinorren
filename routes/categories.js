@@ -66,20 +66,20 @@ router.get('/:id/products', auth, (req, res) => {
 
 // POST /api/categories/:id/products - add product (protected)
 router.post('/:id/products', auth, (req, res) => {
-  const { brand, stock_code, stock_name, purpose, order_index } = req.body;
+  const { brand, stock_code, stock_name, purpose, image_url, features, order_index } = req.body;
   if (!stock_name) return res.status(400).json({ error: 'stock_name required' });
   const result = db.prepare(
-    'INSERT INTO category_products (category_id, brand, stock_code, stock_name, purpose, order_index) VALUES (?,?,?,?,?,?)'
-  ).run(req.params.id, brand || 'ORGAMİK', stock_code || '', stock_name, purpose || '', order_index || 0);
+    'INSERT INTO category_products (category_id, brand, stock_code, stock_name, purpose, image_url, features, order_index) VALUES (?,?,?,?,?,?,?,?)'
+  ).run(req.params.id, brand || 'ORGAMİK', stock_code || '', stock_name, purpose || '', image_url || null, features || null, order_index || 0);
   res.json({ id: result.lastInsertRowid, message: 'Product added' });
 });
 
 // PUT /api/categories/products/:pid - update product (protected)
 router.put('/products/:pid', auth, (req, res) => {
-  const { brand, stock_code, stock_name, purpose, order_index, is_active } = req.body;
+  const { brand, stock_code, stock_name, purpose, image_url, features, order_index, is_active } = req.body;
   db.prepare(
-    'UPDATE category_products SET brand=?,stock_code=?,stock_name=?,purpose=?,order_index=?,is_active=? WHERE id=?'
-  ).run(brand || 'ORGAMİK', stock_code || '', stock_name, purpose || '', order_index || 0, is_active === false ? 0 : 1, req.params.pid);
+    'UPDATE category_products SET brand=?,stock_code=?,stock_name=?,purpose=?,image_url=?,features=?,order_index=?,is_active=? WHERE id=?'
+  ).run(brand || 'ORGAMİK', stock_code || '', stock_name, purpose || '', image_url || null, features || null, order_index || 0, is_active === false ? 0 : 1, req.params.pid);
   res.json({ message: 'Product updated' });
 });
 
