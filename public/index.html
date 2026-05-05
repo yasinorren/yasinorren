@@ -1,85 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="Innomed Life Sciences – Microbiological and diagnostic products. Clinical, industrial and environmental control media. Istanbul, Turkey."/>
-  <title>Innomed Life Sciences | Diagnostic &amp; Microbiological Products</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/assets/css/style.css?v=2"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Innomed Life Sciences</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/style.css?v=3">
 </head>
 <body>
 
-<!-- NAVBAR -->
-<header class="navbar" id="navbar">
-  <div class="container nav-inner">
-    <a href="/" data-spa class="logo">
-      <div id="logoImgWrap">
-        <svg width="36" height="36" viewBox="0 0 38 38">
-          <circle cx="19" cy="19" r="19" fill="#0A5C8A"/>
-          <path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="19" cy="10" r="2.8" fill="#26C6DA"/>
-        </svg>
+  <!-- NAVBAR -->
+  <nav id="navbar" class="navbar">
+    <div class="nav-container">
+      <a href="/" data-spa class="nav-logo">
+        <div id="logoImgWrap"></div>
+        <span id="siteNameText" class="nav-logo-text">Innomed Life Sciences</span>
+      </a>
+      <div id="mainNav" class="nav-links"></div>
+      <div class="nav-actions">
+        <button id="hamburger" class="hamburger-btn" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 22 22"><path d="M3 6H19M3 11H19M3 16H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
       </div>
-      <div class="logo-text">
-        <span class="logo-name" id="siteNameText">INNOMED</span>
-        <span class="logo-sub" id="siteTaglineText">Life Sciences</span>
-      </div>
-    </a>
+    </div>
+  </nav>
 
-    <!-- Dynamic nav — populated by main.js -->
-    <nav id="mainNav"></nav>
-
-    <!-- Hamburger for mobile -->
-    <button class="hamburger" id="hamburger" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
+  <!-- MOBILE DRAWER -->
+  <div id="mobileDrawer" class="mobile-drawer">
+    <div class="mobile-drawer-header">
+      <span class="nav-logo-text">Innomed</span>
+      <button id="drawerClose" class="drawer-close" aria-label="Close">&#10005;</button>
+    </div>
+    <div id="mobileNavLinks" class="mobile-nav-links"></div>
   </div>
+  <div class="drawer-overlay" id="drawerOverlay"></div>
 
-  <!-- Mobile drawer -->
-  <div class="mobile-drawer" id="mobileDrawer">
-    <div class="mobile-drawer-inner">
-      <button class="drawer-close" id="drawerClose">&times;</button>
-      <div id="mobileNavLinks"></div>
+  <!-- APP CONTAINER -->
+  <div id="app"></div>
+
+  <!-- FOOTER -->
+  <footer id="siteFooter" class="site-footer"></footer>
+
+  <!-- BACK TO TOP -->
+  <button id="backTop" class="back-top" aria-label="Back to top">&#8679;</button>
+
+  <!-- INQUIRY MODAL -->
+  <div id="inquiryModal" class="modal-overlay" style="display:none;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:480px;width:100%">
+      <div class="modal-header">
+        <h3 id="modalProductName" style="font-size:1rem;font-weight:600;color:#1E293B">Ürün Talebi</h3>
+        <button id="modalClose" class="modal-close">&times;</button>
+      </div>
+      <form id="inquiryForm">
+        <div class="form-group">
+          <label>Ad Soyad *</label>
+          <input name="customer_name" required placeholder="Adınız Soyadınız">
+        </div>
+        <div class="form-group">
+          <label>E-posta *</label>
+          <input name="customer_email" type="email" required placeholder="ornek@email.com">
+        </div>
+        <div class="form-group">
+          <label>Mesaj</label>
+          <textarea name="message" rows="3" placeholder="Mesajınız..."></textarea>
+        </div>
+        <div id="inqOk" style="display:none;padding:10px 14px;background:#dcfce7;border-radius:8px;color:#166534;font-size:.88rem;margin-bottom:10px">Talebiniz iletildi! En kısa sürede dönüş yapacağız.</div>
+        <div id="inqErr" style="display:none;padding:10px 14px;background:#fee2e2;border-radius:8px;color:#991b1b;font-size:.88rem;margin-bottom:10px">Bir hata oluştu. Lütfen tekrar deneyin.</div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Gönder</button>
+      </form>
     </div>
   </div>
-</header>
 
-<!-- MAIN APP -->
-<div id="app">
-  <div class="page-loading"><div class="spinner"></div></div>
-</div>
-
-<!-- FOOTER — populated by main.js -->
-<footer id="siteFooter"></footer>
-
-<!-- Back to top -->
-<button id="backTop" aria-label="Back to top">&#8679;</button>
-
-<!-- Product Inquiry Modal -->
-<div id="inquiryModal" class="modal-overlay" style="display:none">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3>Product Inquiry</h3>
-      <button id="modalClose" class="modal-close">&times;</button>
-    </div>
-    <p id="modalProductName" style="font-size:.88rem;color:#0A5C8A;font-weight:600;margin:0 24px 4px;padding-bottom:12px;border-bottom:1px solid #D0E4F0"></p>
-    <form id="inquiryForm" style="padding:20px 24px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div><label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:5px">Full Name *</label><input type="text" name="customer_name" required style="width:100%;padding:10px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:.88rem;outline:none"></div>
-        <div><label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:5px">Email *</label><input type="email" name="customer_email" required style="width:100%;padding:10px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:.88rem;outline:none"></div>
-      </div>
-      <div style="margin-bottom:14px"><label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:5px">Message / Quantity *</label><textarea name="message" rows="4" required style="width:100%;padding:10px 12px;border:1.5px solid #D0E4F0;border-radius:8px;font-size:.88rem;outline:none;resize:vertical"></textarea></div>
-      <button type="submit" style="width:100%;padding:12px;background:linear-gradient(135deg,#0A5C8A,#074570);color:#fff;border:none;border-radius:50px;font-size:.9rem;font-weight:600;cursor:pointer">Send Inquiry</button>
-      <div id="inqOk" style="display:none;margin-top:12px;padding:12px;background:rgba(0,137,123,.08);border:1px solid rgba(0,137,123,.2);border-radius:8px;color:#00897B;font-size:.85rem;text-align:center">Inquiry sent! We will get back to you shortly.</div>
-      <div id="inqErr" style="display:none;margin-top:12px;padding:12px;background:rgba(220,53,69,.08);border:1px solid rgba(220,53,69,.2);border-radius:8px;color:#DC3545;font-size:.85rem;text-align:center">An error occurred. Please try again.</div>
-    </form>
-  </div>
-</div>
-
-<script src="/assets/js/main.js?v=2"></script>
+  <script src="/assets/js/main.js?v=3"></script>
 </body>
 </html>

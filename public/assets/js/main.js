@@ -208,8 +208,8 @@
         '<div class="hero-bg-overlay"></div>' +
         '<div class="container" style="position:relative;z-index:2;padding-top:80px;padding-bottom:80px">' +
           '<div class="hero-badge">&#128300; Life Sciences &amp; Diagnostics</div>' +
-          '<h1 class="hero-title">' + ((c.hero && c.hero.title_line1) ? (c.hero.title_line1 + (c.hero.title_line2 ? ' ' + c.hero.title_line2 : '')) : t('heroTitle')) + '</h1>' +
-          '<p class="hero-desc">' + ((c.hero && (c.hero.desc || c.hero.subtitle)) || t('heroSub')) + '</p>' +
+          '<h1 class="hero-title">' + ((c.hero && c.hero.title) || t('heroTitle')) + '</h1>' +
+          '<p class="hero-desc">' + ((c.hero && c.hero.subtitle) || t('heroSub')) + '</p>' +
           '<div class="hero-btns">' +
             '<button class="btn btn-primary" onclick="document.getElementById(\'categories-sec\').scrollIntoView({behavior:\'smooth\'})">' + t('heroCta') + '</button>' +
             '<a href="/verify" data-spa class="btn btn-ghost">' + t('heroVerify') + '</a>' +
@@ -233,8 +233,8 @@
         '<div class="container about-grid">' +
           '<div class="about-text">' +
             '<span class="section-label">Who We Are</span>' +
-            '<h2>' + ((c.about && c.about.title_line1) ? (c.about.title_line1 + (c.about.title_line2 ? ' ' + c.about.title_line2 : '')) : t('aboutTitle')) + '</h2>' +
-            '<p>' + ((c.about && (c.about.p1 || c.about.text)) || t('aboutText')) + '</p>' +
+            '<h2>' + ((c.about && c.about.title) || t('aboutTitle')) + '</h2>' +
+            '<p>' + ((c.about && c.about.text) || t('aboutText')) + '</p>' +
             '<ul class="about-checks">' +
               '<li>&#10003; Clinical &amp; Industrial Microbiology</li>' +
               '<li>&#10003; Environmental Control Products</li>' +
@@ -302,9 +302,9 @@
             '<span class="section-label">Contact</span>' +
             '<h2 style="font-size:clamp(1.6rem,3vw,2.2rem);margin:10px 0 20px">' + t('contactTitle') + '</h2>' +
             '<div class="contact-items">' +
-              '<div class="contact-item"><span class="ci-icon">&#128205;</span><span>' + ((c.contact && c.contact.address) || 'Istanbul, Turkey') + '</span></div>' +
-              '<div class="contact-item"><span class="ci-icon">&#128222;</span><span>' + ((c.contact && c.contact.phone) || '+90 212 000 0000') + '</span></div>' +
-              '<div class="contact-item"><span class="ci-icon">&#9993;</span><span>' + ((c.contact && c.contact.email) || 'info@innomed.com.tr') + '</span></div>' +
+              '<div class="contact-item"><span class="ci-icon">&#128205;</span><span>' + ((c.site && c.site.address) || 'Istanbul, Turkey') + '</span></div>' +
+              '<div class="contact-item"><span class="ci-icon">&#128222;</span><span>' + ((c.site && c.site.phone) || '+90 212 000 0000') + '</span></div>' +
+              '<div class="contact-item"><span class="ci-icon">&#9993;</span><span>' + ((c.site && c.site.email) || 'info@innomed.com.tr') + '</span></div>' +
             '</div>' +
           '</div>' +
           '<form class="contact-form" id="contactForm">' +
@@ -634,10 +634,10 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              customer_name: String(fd.get('customer_name') || '').slice(0, 200),
-              customer_email: String(fd.get('customer_email') || '').slice(0, 200),
-              message: ('Product: ' + productLabel + '\n' + String(fd.get('message') || '')).slice(0, 2000),
-              subject: 'Product Inquiry'
+              name: String(fd.get('customer_name') || '').slice(0, 200),
+              email: String(fd.get('customer_email') || '').slice(0, 200),
+              message: String(fd.get('message') || '').slice(0, 2000),
+              product_name: productLabel
             })
           });
           if (r.ok) {
@@ -671,10 +671,9 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            customer_name: String(fd.get('customer_name') || '').slice(0, 200),
-            customer_email: String(fd.get('customer_email') || '').slice(0, 200),
-            message: String(fd.get('message') || '').slice(0, 2000),
-            subject: 'Contact Form'
+            name: String(fd.get('customer_name') || '').slice(0, 200),
+            email: String(fd.get('customer_email') || '').slice(0, 200),
+            message: String(fd.get('message') || '').slice(0, 2000)
           })
         });
         var msg = document.getElementById('contactMsg');
@@ -709,10 +708,10 @@
     var roots = categories.filter(function (c) { return !c.parent_id; });
     var c = siteContent;
 
-    var c = siteContent;
-    var siteName = (c.nav && c.nav.site_name) || 'INNOMED';
-    var logoHtml = (c.nav && c.nav.logo_url)
-      ? '<img src="' + esc(c.nav.logo_url) + '" alt="Logo" style="height:32px;width:auto;object-fit:contain">'
+    var s = (siteContent && siteContent.site) || {};
+    var siteName = s.site_name || 'Innomed Life Sciences';
+    var logoHtml = s.logo_url
+      ? '<img src="' + esc(s.logo_url) + '" alt="Logo" style="height:32px;width:auto;object-fit:contain">'
       : '<svg width="32" height="32" viewBox="0 0 38 38"><circle cx="19" cy="19" r="19" fill="#0A5C8A"/><path d="M11 28L19 10L27 28" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="14" y1="22" x2="24" y2="22" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="19" cy="10" r="2.8" fill="#26C6DA"/></svg>';
 
     footer.innerHTML =
@@ -741,9 +740,9 @@
         '</div>' +
         '<div class="footer-col">' +
           '<strong>Contact</strong>' +
-          '<p>' + ((c.contact && c.contact.address) || 'Istanbul, Turkey') + '</p>' +
-          '<p>' + ((c.contact && c.contact.phone) || '') + '</p>' +
-          '<p>' + ((c.contact && c.contact.email) || '') + '</p>' +
+          '<p>' + (s.address || 'Istanbul, Turkey') + '</p>' +
+          '<p>' + (s.phone || '') + '</p>' +
+          '<p>' + (s.email || '') + '</p>' +
         '</div>' +
       '</div>' +
       '<div class="footer-bottom">' +
@@ -770,29 +769,45 @@
     var toggle = document.getElementById('hamburger');
     var drawer = document.getElementById('mobileDrawer');
     var close = document.getElementById('drawerClose');
-    if (toggle && drawer) toggle.addEventListener('click', function () { drawer.classList.toggle('open'); });
-    if (close && drawer) close.addEventListener('click', function () { drawer.classList.remove('open'); });
-    if (drawer) drawer.addEventListener('click', function (e) { if (e.target === drawer) drawer.classList.remove('open'); });
+    var overlay = document.getElementById('drawerOverlay');
+    function openDrawer() { if (drawer) { drawer.classList.add('open'); if (overlay) overlay.classList.add('open'); } }
+    function closeDrawer() { if (drawer) { drawer.classList.remove('open'); if (overlay) overlay.classList.remove('open'); } }
+    if (toggle) toggle.addEventListener('click', openDrawer);
+    if (close) close.addEventListener('click', closeDrawer);
+    if (overlay) overlay.addEventListener('click', closeDrawer);
+    /* Close when a link is clicked */
+    if (drawer) drawer.addEventListener('click', function (e) { if (e.target.tagName === 'A') closeDrawer(); });
   }
 
   /* ── Load Content ── */
   async function loadContent() {
     var d = await api('/api/content');
-    if (d && typeof d === 'object' && !Array.isArray(d) && !d.error) siteContent = d;
+    if (!d) return;
+    /* API returns [{section, key, value}] — convert to nested obj */
+    if (Array.isArray(d)) {
+      siteContent = {};
+      d.forEach(function (row) {
+        if (!siteContent[row.section]) siteContent[row.section] = {};
+        siteContent[row.section][row.key] = row.value;
+      });
+    } else if (typeof d === 'object' && !d.error) {
+      siteContent = d;
+    }
   }
 
   /* ── Apply branding from site content (logo, site name) ── */
   function applyBranding() {
     var c = siteContent;
     if (!c) return;
+    var s = c.site || {};
     var wrap = document.getElementById('logoImgWrap');
-    if (wrap && c.nav && c.nav.logo_url) {
-      wrap.innerHTML = '<img src="' + esc(c.nav.logo_url) + '" alt="Logo" style="height:36px;width:auto;object-fit:contain;display:block">';
+    if (wrap && s.logo_url) {
+      wrap.innerHTML = '<img src="' + esc(s.logo_url) + '" alt="Logo" style="height:36px;width:auto;object-fit:contain;display:block">';
     }
     var nameEl = document.getElementById('siteNameText');
-    if (nameEl && c.nav && c.nav.site_name) nameEl.textContent = c.nav.site_name;
+    if (nameEl && s.site_name) nameEl.textContent = s.site_name;
     var tagEl = document.getElementById('siteTaglineText');
-    if (tagEl && c.nav && c.nav.site_tagline) tagEl.textContent = c.nav.site_tagline;
+    if (tagEl && s.tagline) tagEl.textContent = s.tagline;
   }
 
   /* ── Utility ── */
