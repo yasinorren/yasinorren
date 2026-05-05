@@ -1,20 +1,16 @@
 const jwt = require('jsonwebtoken');
 
-const getSecret = () => {
-  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET environment variable is not set');
-  return process.env.JWT_SECRET;
-};
+const SECRET = () => process.env.JWT_SECRET || 'innomed-secret-2024';
 
-module.exports = function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Token gerekli' });
+module.exports = function auth(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authorization token required' });
   }
   try {
-    const token = auth.split(' ')[1];
-    req.user = jwt.verify(token, getSecret());
+    req.user = jwt.verify(header.slice(7), SECRET());
     next();
   } catch {
-    res.status(401).json({ error: 'Geçersiz veya süresi dolmuş token' });
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 };

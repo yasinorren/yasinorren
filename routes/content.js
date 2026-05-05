@@ -1,48 +1,38 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../database/db');
-const auth = require('../middleware/auth');
+const router = require('express').Router();
+const db     = require('../database/db');
+const auth   = require('../middleware/auth');
 
-/* GET /api/content  — public, returns all content as grouped object */
+// GET /api/content — public, returns array of {section, key, value}
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT section, key, value FROM site_content').all();
-  const content = {};
-  for (const row of rows) {
-    if (!content[row.section]) content[row.section] = {};
-    content[row.section][row.key] = row.value;
-  }
-  res.json(content);
-});
-
-/* GET /api/content/schema  — protected, returns full rows with labels/types */
-router.get('/schema', auth, (req, res) => {
-  const rows = db.prepare('SELECT * FROM site_content ORDER BY section, id').all();
+  const rows = db.prepare('SELECT section, key, value FROM site_content ORDER BY section, id').all();
   res.json(rows);
 });
 
-/* PUT /api/content  — protected, batch update { "section.key": "value" } */
+// PUT /api/content — protected, accepts { "section.key": value, ... }
 router.put('/', auth, (req, res) => {
   const updates = req.body;
-  if (!updates || typeof updates !== 'object') return res.status(400).json({ error: 'Invalid body' });
+  if (!updates || typeof updates !== 'object')
+    return res.status(400).json({ error: 'Invalid body' });
 
-  const update = db.prepare(
-    'UPDATE site_content SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE section = ? AND key = ?'
+  const upsert = db.prepare(
+    'INSERT INTO site_content (section, key, value) VALUES (?, ?, ?) ON CONFLICT(section, key) DO UPDATE SET value=excluded.value'
   );
-  const updateMany = db.transaction((items) => {
+
+  const runAll = db.transaction((items) => {
     for (const [sectionKey, value] of Object.entries(items)) {
-      const dotIdx = sectionKey.indexOf('.');
-      if (dotIdx === -1) continue;
-      const section = sectionKey.substring(0, dotIdx);
-      const key = sectionKey.substring(dotIdx + 1);
-      update.run(String(value), section, key);
+      const dot = sectionKey.indexOf('.');
+      if (dot === -1) continue;
+      const section = sectionKey.substring(0, dot);
+      const key     = sectionKey.substring(dot + 1);
+      upsert.run(section, key, String(value));
     }
   });
 
   try {
-    updateMany(updates);
+    runAll(updates);
     res.json({ message: 'Content updated successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
