@@ -181,6 +181,9 @@ h1, h2, h3, h4 {
   box-shadow: 0 2px 16px rgba(11, 79, 158, 0.08);
   transition: 0.3s var(--ease);
 }
+.navbar.scrolled {
+  box-shadow: 0 4px 24px rgba(11, 79, 158, 0.14);
+}
 
 .nav-container {
   max-width: 1200px;
