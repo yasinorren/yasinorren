@@ -75,6 +75,7 @@ app.use('/api/content',    require('./routes/content'));
 app.use('/api/sterility',  require('./routes/sterility'));
 app.use('/api/orders',     require('./routes/orders'));
 app.use('/api/inquiries',  require('./routes/inquiries'));
+app.use('/api/sales',      require('./routes/sales'));
 
 // SPA fallbacks
 app.get('/admin*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html')));

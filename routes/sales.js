@@ -64,10 +64,7 @@ router.post('/', auth, (req, res) => {
     country || 'Turkey', sale_date || null, notes || null
   );
 
-  // Update stock
-  if (product_id) {
-    db.prepare('UPDATE products SET stock_qty = MAX(0, stock_qty - ?) WHERE id = ?').run(qty, product_id);
-  }
+  /* stock update skipped — no products table in this system */
 
   res.status(201).json({ id: result.lastInsertRowid, total_price: total, message: 'Satış kaydedildi' });
 });
@@ -76,10 +73,7 @@ router.post('/', auth, (req, res) => {
 router.delete('/:id', auth, (req, res) => {
   const sale = db.prepare('SELECT * FROM sales WHERE id = ?').get(req.params.id);
   if (!sale) return res.status(404).json({ error: 'Satış bulunamadı' });
-  // Revert stock
-  if (sale.product_id) {
-    db.prepare('UPDATE products SET stock_qty = stock_qty + ? WHERE id = ?').run(sale.quantity, sale.product_id);
-  }
+
   db.prepare('DELETE FROM sales WHERE id = ?').run(req.params.id);
   res.json({ message: 'Satış silindi' });
 });

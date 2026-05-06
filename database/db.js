@@ -92,6 +92,23 @@ db.exec(`
     reply        TEXT DEFAULT '',
     created_at   TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS sales (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id       INTEGER,
+    product_name     TEXT DEFAULT '',
+    catalog_no       TEXT,
+    quantity         INTEGER DEFAULT 1,
+    unit_price       REAL DEFAULT 0,
+    total_price      REAL DEFAULT 0,
+    currency         TEXT DEFAULT 'USD',
+    customer_name    TEXT,
+    customer_company TEXT,
+    country          TEXT DEFAULT 'Turkey',
+    sale_date        TEXT,
+    notes            TEXT,
+    created_at       TEXT DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 // Seed admin user
