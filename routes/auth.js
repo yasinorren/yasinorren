@@ -266,4 +266,27 @@ router.delete('/sessions/:id', requireAuth, (req, res) => {
   res.json({ message: 'Session revoked.' });
 });
 
+/* ─── PUT /api/auth/public-key  (E2EE key registration) ─── */
+router.put('/public-key', requireAuth, (req, res) => {
+  const { public_key } = req.body;
+  /* Base64-encoded raw ECDH P-256 public key is 88 chars */
+  if (!public_key || typeof public_key !== 'string' || public_key.length < 20 || public_key.length > 256) {
+    return res.status(400).json({ error: 'Invalid public key format.' });
+  }
+  /* Validate it is base64 */
+  if (!/^[A-Za-z0-9+/=]+$/.test(public_key)) {
+    return res.status(400).json({ error: 'Public key must be base64-encoded.' });
+  }
+  db.prepare('UPDATE users SET public_key = ? WHERE id = ?').run(public_key, req.user.id);
+  res.json({ message: 'Public key registered.' });
+});
+
+/* ─── GET /api/auth/public-key/:userId  (fetch peer key for E2EE) ─── */
+router.get('/public-key/:userId', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT id, public_key FROM users WHERE id = ? AND is_active = 1').get(+req.params.userId);
+  if (!user)            return res.status(404).json({ error: 'User not found.' });
+  if (!user.public_key) return res.status(404).json({ error: 'User has no E2EE key yet.', code: 'NO_KEY' });
+  res.json({ public_key: user.public_key, user_id: user.id });
+});
+
 module.exports = router;

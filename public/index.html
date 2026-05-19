@@ -3,314 +3,300 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-  <meta name="theme-color" content="#0A0A0F"/>
+  <meta name="theme-color" content="#030307"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="description" content="Trowded – The next generation social media platform"/>
+  <meta name="description" content="Trowded – Next Generation Social Platform"/>
   <title>Trowded</title>
   <link rel="manifest" href="/manifest.json"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/assets/css/app.css"/>
 </head>
 <body>
 
-<!-- ═══════════ SPLASH SCREEN ═══════════ -->
+<!-- ═══ SPLASH ═══ -->
 <div id="splash">
-  <div class="splash-logo">
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="32" fill="url(#sg)"/>
-      <path d="M20 22C20 22 24 18 32 18C40 18 44 22 44 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="32" cy="32" r="8" fill="white" fill-opacity="0.9"/>
-      <path d="M20 42C20 42 24 46 32 46C40 46 44 42 44 42" stroke="white" stroke-width="3" stroke-linecap="round"/>
-      <defs>
-        <linearGradient id="sg" x1="0" y1="0" x2="64" y2="64">
-          <stop offset="0%" stop-color="#7B61FF"/>
-          <stop offset="100%" stop-color="#FF61AB"/>
-        </linearGradient>
-      </defs>
-    </svg>
-    <span>trowded</span>
+  <div class="splash-orb orb-1"></div>
+  <div class="splash-orb orb-2"></div>
+  <div class="splash-orb orb-3"></div>
+  <div class="splash-center">
+    <div class="splash-logo-wrap">
+      <div class="splash-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="28" fill="url(#si-g)"/>
+          <path d="M22 24a10 10 0 0 1 20 0" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <circle cx="32" cy="34" r="6" fill="white"/>
+          <path d="M22 44a10 10 0 0 0 20 0" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <defs>
+            <linearGradient id="si-g" x1="0" y1="0" x2="64" y2="64">
+              <stop offset="0%" stop-color="#7B61FF"/>
+              <stop offset="100%" stop-color="#FF61AB"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="splash-wordmark">trowded</div>
+    </div>
+    <p class="splash-tagline">Connect. Create. Inspire.</p>
+    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
   </div>
-  <div class="splash-tagline">Connect. Create. Inspire.</div>
-  <div class="splash-loader"><div class="splash-progress"></div></div>
 </div>
 
-<!-- ═══════════ AUTH SCREEN ═══════════ -->
-<div id="auth-screen" class="screen hidden">
-  <div class="auth-bg"></div>
-  <div class="auth-container">
-    <div class="auth-logo">
-      <svg width="40" height="40" viewBox="0 0 64 64" fill="none">
-        <circle cx="32" cy="32" r="32" fill="url(#ag)"/>
-        <path d="M20 22C20 22 24 18 32 18C40 18 44 22 44 22" stroke="white" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="32" cy="32" r="8" fill="white" fill-opacity="0.9"/>
-        <path d="M20 42C20 42 24 46 32 46C40 46 44 42 44 42" stroke="white" stroke-width="3" stroke-linecap="round"/>
-        <defs><linearGradient id="ag" x1="0" y1="0" x2="64" y2="64"><stop offset="0%" stop-color="#7B61FF"/><stop offset="100%" stop-color="#FF61AB"/></linearGradient></defs>
-      </svg>
-      <h1>trowded</h1>
+<!-- ═══ AUTH ═══ -->
+<div id="auth-screen" class="page hidden">
+  <div class="auth-blob blob-a"></div>
+  <div class="auth-blob blob-b"></div>
+  <div class="auth-blob blob-c"></div>
+  <div class="auth-grid"></div>
+
+  <div class="auth-wrapper">
+    <div class="auth-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="18" fill="url(#ab-g)"/><path d="M14 15a6 6 0 0 1 12 0" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><circle cx="20" cy="21" r="4" fill="white"/><path d="M14 27a6 6 0 0 0 12 0" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/><defs><linearGradient id="ab-g" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#7B61FF"/><stop offset="1" stop-color="#FF61AB"/></linearGradient></defs></svg>
+      </div>
+      <span class="brand-name">trowded</span>
     </div>
 
-    <!-- Login Form -->
-    <div id="login-form" class="auth-form">
-      <h2>Welcome back</h2>
+    <!-- Login -->
+    <div id="auth-login" class="auth-card glass-card">
+      <h2 class="auth-title">Welcome back</h2>
       <p class="auth-sub">Sign in to your account</p>
-      <div class="form-group">
-        <input id="login-identifier" type="text" placeholder="Username or email" autocomplete="username"/>
+      <div class="field-wrap">
+        <input id="li-id" class="glass-input" type="text" placeholder="Username or email" autocomplete="username"/>
       </div>
-      <div class="form-group password-group">
-        <input id="login-password" type="password" placeholder="Password" autocomplete="current-password"/>
-        <button class="toggle-pw" onclick="togglePw('login-password')">👁</button>
+      <div class="field-wrap pw-wrap">
+        <input id="li-pw" class="glass-input" type="password" placeholder="Password" autocomplete="current-password"/>
+        <button class="pw-eye" onclick="togglePw('li-pw')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
-      <div id="login-2fa" class="form-group hidden">
-        <input id="login-totp" type="text" placeholder="6-digit authenticator code" maxlength="6" inputmode="numeric"/>
+      <div id="li-2fa" class="field-wrap hidden">
+        <input id="li-totp" class="glass-input" type="text" inputmode="numeric" maxlength="6" placeholder="Authenticator code"/>
       </div>
-      <div id="login-error" class="auth-error hidden"></div>
-      <button class="btn-primary btn-full" onclick="App.auth.login()">Sign In</button>
-      <div class="auth-divider"><span>or</span></div>
-      <button class="btn-ghost btn-full" onclick="App.auth.showRegister()">Create account</button>
+      <div id="li-err" class="auth-err hidden"></div>
+      <button class="btn-grad btn-full" onclick="App.auth.login()">Sign In</button>
+      <div class="auth-sep"><span>or</span></div>
+      <button class="btn-ghost-full" onclick="App.auth.showReg()">Create an account</button>
     </div>
 
-    <!-- Register Form -->
-    <div id="register-form" class="auth-form hidden">
-      <h2>Join Trowded</h2>
-      <p class="auth-sub">Create your account</p>
-      <div class="form-group">
-        <input id="reg-display" type="text" placeholder="Your name" maxlength="80"/>
+    <!-- Register -->
+    <div id="auth-register" class="auth-card glass-card hidden">
+      <h2 class="auth-title">Join Trowded</h2>
+      <p class="auth-sub">It's free and always will be</p>
+      <div class="field-wrap">
+        <input id="rg-name" class="glass-input" type="text" placeholder="Your full name" maxlength="80"/>
       </div>
-      <div class="form-group">
-        <input id="reg-username" type="text" placeholder="Username (letters, numbers, _)" maxlength="30"/>
+      <div class="field-wrap">
+        <input id="rg-user" class="glass-input" type="text" placeholder="Username (letters, numbers, _)" maxlength="30"/>
       </div>
-      <div class="form-group">
-        <input id="reg-email" type="email" placeholder="Email address"/>
+      <div class="field-wrap">
+        <input id="rg-email" class="glass-input" type="email" placeholder="Email address"/>
       </div>
-      <div class="form-group password-group">
-        <input id="reg-password" type="password" placeholder="Password (8+ chars, A-Z, a-z, 0-9)"/>
-        <button class="toggle-pw" onclick="togglePw('reg-password')">👁</button>
+      <div class="field-wrap pw-wrap">
+        <input id="rg-pw" class="glass-input" type="password" placeholder="Password (8+ chars, A-Z, a-z, 0-9)"/>
+        <button class="pw-eye" onclick="togglePw('rg-pw')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
-      <div class="password-strength" id="pw-strength"></div>
-      <div id="reg-error" class="auth-error hidden"></div>
-      <button class="btn-primary btn-full" onclick="App.auth.register()">Create Account</button>
-      <div class="auth-divider"><span>or</span></div>
-      <button class="btn-ghost btn-full" onclick="App.auth.showLogin()">Already have an account?</button>
+      <div id="pw-str-bar" class="pw-strength-bar"><div id="pw-str-fill" class="pw-strength-fill"></div></div>
+      <div id="rg-err" class="auth-err hidden"></div>
+      <button class="btn-grad btn-full" onclick="App.auth.register()">Create Account</button>
+      <div class="auth-sep"><span>or</span></div>
+      <button class="btn-ghost-full" onclick="App.auth.showLogin()">Already have an account?</button>
     </div>
   </div>
 </div>
 
-<!-- ═══════════ MAIN APP ═══════════ -->
-<div id="app" class="hidden">
+<!-- ═══ MAIN APP ═══ -->
+<div id="app" class="page hidden">
 
   <!-- TOP BAR -->
-  <header class="top-bar" id="top-bar">
-    <div class="top-bar-left">
-      <div class="app-wordmark">trowded</div>
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo" id="topbar-logo">trowded</div>
+      <button class="topbar-back hidden" id="topbar-back" onclick="App.nav.back()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <span class="topbar-title hidden" id="topbar-title"></span>
     </div>
-    <div class="top-bar-center" id="top-bar-title"></div>
-    <div class="top-bar-right">
-      <button class="icon-btn" id="btn-search-open" onclick="App.nav.go('search')">
+    <div class="topbar-right" id="topbar-right">
+      <button class="icon-btn" onclick="App.nav.go('search')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       </button>
-      <button class="icon-btn" id="btn-dm" onclick="App.nav.go('chat')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        <span class="notif-dot hidden" id="dm-dot"></span>
+      <button class="icon-btn pos-rel" onclick="App.nav.go('chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="dot-badge hidden" id="dm-dot"></span>
       </button>
     </div>
   </header>
 
   <!-- SCREENS -->
-  <main class="screen-container" id="screen-container">
+  <main class="screens" id="screens">
 
-    <!-- ── HOME FEED ── -->
-    <section id="screen-home" class="tab-screen active">
-      <!-- Stories Row -->
-      <div class="stories-row" id="stories-row">
-        <div class="story-item story-add" onclick="App.stories.showCreate()">
-          <div class="story-avatar-wrap add">
-            <div class="story-avatar-inner">+</div>
-          </div>
+    <!-- HOME -->
+    <section id="sc-home" class="screen active">
+      <div class="stories-strip" id="stories-strip">
+        <div class="story-chip add-story" onclick="App.stories.showCreate()">
+          <div class="story-ring-wrap add-ring"><div class="story-av-shell"><span class="add-plus">+</span></div></div>
           <span>Your Story</span>
         </div>
       </div>
-      <!-- Feed -->
-      <div id="feed-container"></div>
-      <div id="feed-loader" class="loader-wrap hidden"><div class="spinner"></div></div>
+      <div id="feed-list"></div>
+      <div id="feed-spinner" class="center-spin hidden"><div class="spin-ring"></div></div>
     </section>
 
-    <!-- ── EXPLORE ── -->
-    <section id="screen-explore" class="tab-screen">
-      <div class="explore-search-bar">
-        <input type="text" id="explore-search-input" placeholder="Search people, posts, tags..." oninput="App.search.debounce()"/>
+    <!-- EXPLORE -->
+    <section id="sc-explore" class="screen">
+      <div class="explore-search-wrap">
+        <div class="explore-search-inner">
+          <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input id="exp-q" class="explore-inp" type="text" placeholder="Search posts, people, tags…" oninput="App.explore.debounce()"/>
+        </div>
       </div>
-      <div id="search-results" class="hidden"></div>
-      <div id="explore-content">
-        <div class="explore-trending" id="explore-trending"></div>
-        <div class="explore-grid" id="explore-grid"></div>
+      <div id="exp-results" class="hidden"></div>
+      <div id="exp-main">
+        <div id="exp-trending"></div>
+        <div id="exp-grid" class="explore-grid"></div>
       </div>
     </section>
 
-    <!-- ── NOTIFICATIONS ── -->
-    <section id="screen-notifications" class="tab-screen">
+    <!-- NOTIFICATIONS -->
+    <section id="sc-notifications" class="screen">
       <div id="notif-list"></div>
     </section>
 
-    <!-- ── PROFILE ── -->
-    <section id="screen-profile" class="tab-screen">
-      <div id="profile-content"></div>
+    <!-- PROFILE -->
+    <section id="sc-profile" class="screen">
+      <div id="own-profile"></div>
     </section>
 
-    <!-- ── CHAT LIST ── -->
-    <section id="screen-chat" class="tab-screen">
-      <div class="chat-header-bar">
+    <!-- CHAT LIST -->
+    <section id="sc-chat" class="screen">
+      <div class="chat-list-header">
         <h2>Messages</h2>
-        <button class="icon-btn" onclick="App.chat.showNewDM()">
+        <button class="icon-btn" onclick="App.chat.newDM()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
       <div id="chat-list"></div>
     </section>
 
-    <!-- ── SEARCH ── -->
-    <section id="screen-search" class="tab-screen">
-      <div class="search-bar-full">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <input type="text" id="search-input-full" placeholder="Search..." autofocus oninput="App.search.fullSearch()"/>
+    <!-- SEARCH (full) -->
+    <section id="sc-search" class="screen sub">
+      <div class="search-full-bar">
+        <input id="search-q" class="search-full-inp" type="text" placeholder="Search…" autofocus oninput="App.search.run()"/>
       </div>
-      <div id="search-full-results"></div>
+      <div id="search-out"></div>
     </section>
 
-    <!-- ── SINGLE POST ── -->
-    <section id="screen-post" class="tab-screen sub-screen">
-      <div class="sub-header">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <span>Post</span>
-      </div>
-      <div id="single-post-content"></div>
+    <!-- POST DETAIL -->
+    <section id="sc-post" class="screen sub">
+      <div id="post-detail-content"></div>
     </section>
 
-    <!-- ── USER PROFILE (OTHER) ── -->
-    <section id="screen-user-profile" class="tab-screen sub-screen">
-      <div class="sub-header">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <span id="user-profile-title">Profile</span>
-      </div>
-      <div id="user-profile-content"></div>
+    <!-- USER PROFILE -->
+    <section id="sc-userprofile" class="screen sub">
+      <div id="user-profile-out"></div>
     </section>
 
-    <!-- ── CHAT CONVERSATION ── -->
-    <section id="screen-conversation" class="tab-screen sub-screen">
-      <div class="conv-header">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <div class="conv-user-info" id="conv-user-info"></div>
-        <div></div>
+    <!-- CONVERSATION -->
+    <section id="sc-conv" class="screen sub conv-screen">
+      <div class="conv-topbar" id="conv-topbar">
+        <div class="conv-user" id="conv-user"></div>
+        <div class="e2ee-badge" id="conv-e2ee-badge" title="End-to-End Encrypted">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>E2EE</span>
+        </div>
       </div>
-      <div id="messages-container" class="messages-container"></div>
-      <div class="message-input-bar">
-        <input type="text" id="message-input" placeholder="Message..." onkeydown="if(event.key==='Enter')App.chat.sendMessage()"/>
-        <button class="send-btn" onclick="App.chat.sendMessage()">
+      <div class="e2ee-notice" id="e2ee-notice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Messages are end-to-end encrypted. Nobody — not even Trowded — can read them.
+      </div>
+      <div id="msg-list" class="msg-list"></div>
+      <div class="msg-input-bar">
+        <div class="msg-input-wrap">
+          <input id="msg-inp" class="msg-inp" type="text" placeholder="Message…" onkeydown="if(event.key==='Enter')App.chat.send()"/>
+        </div>
+        <button class="send-btn" onclick="App.chat.send()">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>
     </section>
 
-    <!-- ── SETTINGS ── -->
-    <section id="screen-settings" class="tab-screen sub-screen">
-      <div class="sub-header">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <span>Settings</span>
-      </div>
-      <div id="settings-content"></div>
+    <!-- SETTINGS -->
+    <section id="sc-settings" class="screen sub">
+      <div id="settings-out"></div>
     </section>
 
-    <!-- ── EDIT PROFILE ── -->
-    <section id="screen-edit-profile" class="tab-screen sub-screen">
-      <div class="sub-header">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <span>Edit Profile</span>
-        <button class="btn-text" onclick="App.profile.saveEdit()">Save</button>
-      </div>
-      <div id="edit-profile-content"></div>
+    <!-- EDIT PROFILE -->
+    <section id="sc-editprofile" class="screen sub">
+      <div id="editprofile-out"></div>
     </section>
 
-    <!-- ── 2FA SETUP ── -->
-    <section id="screen-2fa" class="tab-screen sub-screen">
-      <div class="sub-header">
-        <button class="icon-btn" onclick="App.nav.back()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-        </button>
-        <span>Two-Factor Authentication</span>
-      </div>
-      <div id="twofa-content"></div>
+    <!-- 2FA -->
+    <section id="sc-2fa" class="screen sub">
+      <div id="twofa-out"></div>
     </section>
 
   </main>
 
   <!-- BOTTOM NAV -->
-  <nav class="bottom-nav" id="bottom-nav">
-    <button class="nav-btn active" data-tab="home" onclick="App.nav.go('home')">
+  <nav class="bottomnav" id="bottomnav">
+    <div class="nav-indicator" id="nav-indicator"></div>
+    <button class="nav-item active" data-tab="home" onclick="App.nav.go('home')">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       <span>Home</span>
     </button>
-    <button class="nav-btn" data-tab="explore" onclick="App.nav.go('explore')">
+    <button class="nav-item" data-tab="explore" onclick="App.nav.go('explore')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       <span>Explore</span>
     </button>
-    <button class="nav-btn create-btn" onclick="App.post.showCreate()">
-      <div class="create-icon">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5v14M5 12h14"/></svg>
+    <button class="nav-item nav-create" onclick="App.post.showCreate()">
+      <div class="nav-create-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
       </div>
     </button>
-    <button class="nav-btn" data-tab="notifications" onclick="App.nav.go('notifications')">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-      <span class="notif-badge hidden" id="notif-badge">0</span>
+    <button class="nav-item" data-tab="notifications" onclick="App.nav.go('notifications')">
+      <div class="pos-rel d-inline">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+        <span class="notif-badge hidden" id="notif-badge"></span>
+      </div>
       <span>Activity</span>
     </button>
-    <button class="nav-btn" data-tab="profile" onclick="App.nav.go('profile')">
-      <div class="nav-avatar" id="nav-avatar">
+    <button class="nav-item" data-tab="profile" onclick="App.nav.go('profile')">
+      <div class="nav-av" id="nav-av">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
       </div>
       <span>Profile</span>
     </button>
   </nav>
 
-</div>
+</div><!-- #app -->
 
-<!-- ═══════════ MODALS ═══════════ -->
+<!-- ═══ MODALS ═══ -->
 
-<!-- Create Post Modal -->
-<div id="modal-create-post" class="modal-overlay hidden">
-  <div class="modal-sheet">
-    <div class="modal-header">
-      <button class="btn-text" onclick="App.post.closeCreate()">Cancel</button>
-      <span>New Post</span>
-      <button class="btn-primary-sm" onclick="App.post.submit()">Post</button>
+<!-- Create Post -->
+<div id="modal-create" class="modal-overlay hidden">
+  <div class="modal-sheet glass-sheet">
+    <div class="modal-drag-bar"></div>
+    <div class="modal-head">
+      <button class="btn-cancel" onclick="App.post.closeCreate()">Cancel</button>
+      <span class="modal-title">New Post</span>
+      <button class="btn-post-submit" id="post-submit-btn" onclick="App.post.submit()">Post</button>
     </div>
-    <div class="create-post-body">
-      <div class="create-post-user" id="create-post-user"></div>
-      <textarea id="post-content-input" placeholder="What's on your mind?" maxlength="5000" oninput="App.post.countChars()"></textarea>
-      <div class="post-char-count" id="post-char-count">5000</div>
-      <div class="create-media-preview" id="create-media-preview"></div>
-      <div class="create-post-toolbar">
-        <label class="icon-btn" for="post-media-input">
+    <div class="create-body">
+      <div class="create-user-row" id="create-user-row"></div>
+      <textarea id="post-ta" placeholder="What's happening?" maxlength="5000" oninput="App.post.onInput()"></textarea>
+      <div class="post-char-row"><span id="post-char">5000</span></div>
+      <div id="media-preview-row" class="media-prev-row"></div>
+      <div class="create-toolbar">
+        <label class="icon-btn toolbar-ico" for="media-file-inp" title="Add media">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         </label>
-        <input id="post-media-input" type="file" accept="image/*,video/*" multiple class="hidden" onchange="App.post.handleMedia(event)"/>
-        <button class="icon-btn" onclick="App.post.addLocation()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        </button>
-        <select id="post-visibility" class="vis-select">
+        <input id="media-file-inp" type="file" accept="image/*,video/*" multiple class="hidden" onchange="App.post.addMedia(event)"/>
+        <select id="post-vis" class="vis-picker">
           <option value="public">🌍 Everyone</option>
           <option value="followers">👥 Followers</option>
           <option value="private">🔒 Only me</option>
@@ -320,37 +306,40 @@
   </div>
 </div>
 
-<!-- Story Viewer Modal -->
-<div id="modal-story-viewer" class="modal-overlay hidden story-overlay">
-  <div class="story-viewer-container">
-    <div class="story-progress-bar" id="story-progress-bar"></div>
-    <div class="story-viewer-header">
-      <div class="story-user-info" id="story-viewer-user"></div>
-      <button class="icon-btn-white" onclick="App.stories.close()">✕</button>
+<!-- Story Viewer -->
+<div id="modal-story" class="modal-overlay story-modal hidden">
+  <div class="story-viewer">
+    <div class="story-segs" id="story-segs"></div>
+    <div class="story-vh">
+      <div class="story-vuser" id="story-vuser"></div>
+      <button class="sv-close" onclick="App.stories.close()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
-    <div class="story-viewer-body" id="story-viewer-body">
-      <div class="story-text" id="story-viewer-text"></div>
-    </div>
-    <div class="story-nav-prev" onclick="App.stories.prev()"></div>
-    <div class="story-nav-next" onclick="App.stories.next()"></div>
-    <div class="story-viewer-footer">
-      <input type="text" placeholder="Reply to story..." class="story-reply-input" readonly onclick="App.toast('Story replies coming soon!')"/>
-      <button class="story-heart-btn" onclick="App.stories.likeCurrentStory()">❤️</button>
+    <div class="story-vbody" id="story-vbody"></div>
+    <div class="sv-left"  onclick="App.stories.prev()"></div>
+    <div class="sv-right" onclick="App.stories.next()"></div>
+    <div class="story-vfoot">
+      <input class="story-reply" placeholder="Reply to story…" readonly onclick="App.toast('Story replies coming soon!')"/>
+      <button class="story-heart-btn" onclick="App.toast('❤️')">♥</button>
     </div>
   </div>
 </div>
 
-<!-- Comments Modal -->
+<!-- Comments -->
 <div id="modal-comments" class="modal-overlay hidden">
-  <div class="modal-sheet comments-sheet">
-    <div class="modal-header">
-      <span>Comments</span>
-      <button class="icon-btn" onclick="App.comments.close()">✕</button>
+  <div class="modal-sheet glass-sheet comments-sheet">
+    <div class="modal-drag-bar"></div>
+    <div class="modal-head">
+      <span class="modal-title">Comments</span>
+      <button class="sv-close" onclick="App.comments.close()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
     <div id="comments-list" class="comments-list"></div>
-    <div class="comment-input-bar">
-      <div class="comment-avatar" id="comment-avatar"></div>
-      <input type="text" id="comment-input" placeholder="Add a comment..." maxlength="1000" onkeydown="if(event.key==='Enter')App.comments.submit()"/>
+    <div class="comment-bar">
+      <div class="comment-av" id="comment-av-me"></div>
+      <input id="comment-inp" class="comment-inp" type="text" placeholder="Add a comment…" maxlength="1000" onkeydown="if(event.key==='Enter')App.comments.submit()"/>
       <button class="send-btn" onclick="App.comments.submit()">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
@@ -358,8 +347,13 @@
   </div>
 </div>
 
-<!-- Toast notification -->
+<!-- Toast -->
 <div id="toast" class="toast hidden"></div>
+
+<!-- Action sheet -->
+<div id="action-sheet" class="modal-overlay hidden">
+  <div class="modal-sheet glass-sheet action-sheet" id="action-sheet-body"></div>
+</div>
 
 <script src="/assets/js/app.js"></script>
 </body>

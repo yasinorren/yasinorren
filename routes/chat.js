@@ -113,12 +113,23 @@ router.post('/conversations/:id/messages', requireAuth, (req, res) => {
   const participant = db.prepare('SELECT 1 FROM conversation_participants WHERE conversation_id = ? AND user_id = ?').get(convId, uid);
   if (!participant) return res.status(403).json({ error: 'Not a participant.' });
 
-  const content = sanitizeText(req.body.content || '', 2000);
-  if (!content) return res.status(400).json({ error: 'Message cannot be empty.' });
+  /* E2EE: accept encrypted ciphertext (opaque blob) or plain text */
+  const isEncrypted = !!req.body.is_encrypted;
+  let content;
+  if (isEncrypted) {
+    /* Server stores opaque ciphertext — does NOT sanitize (would corrupt ciphertext) */
+    content = String(req.body.content || '');
+    if (!content || content.length > 8000) return res.status(400).json({ error: 'Invalid message.' });
+    if (!/^[A-Za-z0-9+/=]+$/.test(content)) return res.status(400).json({ error: 'Invalid ciphertext encoding.' });
+  } else {
+    content = sanitizeText(req.body.content || '', 2000);
+    if (!content) return res.status(400).json({ error: 'Message cannot be empty.' });
+  }
 
   const result = db.prepare(`
-    INSERT INTO messages (conversation_id, sender_id, content, message_type) VALUES (?, ?, ?, 'text')
-  `).run(convId, uid, content);
+    INSERT INTO messages (conversation_id, sender_id, content, message_type, is_encrypted)
+    VALUES (?, ?, ?, 'text', ?)
+  `).run(convId, uid, content, isEncrypted ? 1 : 0);
 
   db.prepare('UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(convId);
 

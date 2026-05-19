@@ -1,1742 +1,1410 @@
-/* ══════════════════════════════════════════
-   TROWDED — Main SPA JavaScript
-   ══════════════════════════════════════════ */
 'use strict';
 
-/* ─── API Client ─── */
+/* ── shared token state ── */
+let _accessToken  = null;
+let _refreshToken = null;
+
+/* ══════════════════════════════════════════════════════════
+   E2EE — ECDH P-256 + AES-GCM-256
+   Server is zero-knowledge; stores only opaque ciphertext.
+══════════════════════════════════════════════════════════ */
+const E2EE = (() => {
+  const sub = window.crypto.subtle;
+
+  function b64ToBytes(b64) {
+    const bin = atob(b64), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return u;
+  }
+  function bytesToB64(buf) {
+    const u = new Uint8Array(buf); let s = '';
+    for (const b of u) s += String.fromCharCode(b);
+    return btoa(s);
+  }
+
+  async function genKeyPair() {
+    return sub.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']);
+  }
+  async function exportPubRaw(kp)  { return bytesToB64(await sub.exportKey('raw', kp.publicKey)); }
+  async function exportPrivJWK(kp) { return sub.exportKey('jwk', kp.privateKey); }
+  async function importPubRaw(b64) {
+    return sub.importKey('raw', b64ToBytes(b64), { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+  }
+  async function importPrivJWK(jwk) {
+    return sub.importKey('jwk', jwk, { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']);
+  }
+  async function deriveAES(privKey, theirPub) {
+    return sub.deriveKey(
+      { name: 'ECDH', public: theirPub }, privKey,
+      { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encrypt(aesKey, plaintext) {
+    const iv  = crypto.getRandomValues(new Uint8Array(12));
+    const ct  = await sub.encrypt({ name: 'AES-GCM', iv }, aesKey, new TextEncoder().encode(plaintext));
+    const out = new Uint8Array(12 + ct.byteLength);
+    out.set(iv); out.set(new Uint8Array(ct), 12);
+    return bytesToB64(out.buffer);
+  }
+  async function decrypt(aesKey, b64) {
+    const d  = b64ToBytes(b64);
+    const pt = await sub.decrypt({ name: 'AES-GCM', iv: d.slice(0, 12) }, aesKey, d.slice(12));
+    return new TextDecoder().decode(pt);
+  }
+
+  function lsKey(uid) { return `tw_kp_${uid}`; }
+
+  async function init(uid) {
+    const raw = localStorage.getItem(lsKey(uid));
+    if (raw) {
+      try {
+        const { priv, pub } = JSON.parse(raw);
+        const privKey = await importPrivJWK(priv);
+        const pubKey  = await importPubRaw(pub);
+        return { privateKey: privKey, publicKey: pubKey, _pubB64: pub };
+      } catch (_) { localStorage.removeItem(lsKey(uid)); }
+    }
+    const kp   = await genKeyPair();
+    const pub  = await exportPubRaw(kp);
+    const priv = await exportPrivJWK(kp);
+    localStorage.setItem(lsKey(uid), JSON.stringify({ priv, pub }));
+    kp._pubB64 = pub;
+    return kp;
+  }
+
+  async function getSharedKey(myKP, theirB64) {
+    const theirKey = await importPubRaw(theirB64);
+    return deriveAES(myKP.privateKey, theirKey);
+  }
+
+  return { init, exportPubRaw, getSharedKey, encrypt, decrypt };
+})();
+
+
+/* ══════════════════════════════════════════════════════════
+   API CLIENT  (JWT auto-refresh + queue)
+══════════════════════════════════════════════════════════ */
 const API = (() => {
-  const BASE = '/api';
-  let _accessToken  = localStorage.getItem('tw_access') || null;
-  let _refreshToken = localStorage.getItem('tw_refresh') || null;
-  let _refreshing   = false;
-  let _queue        = [];
+  let _refreshing = false;
+  let _queue = [];
 
-  function setTokens(at, rt) {
-    _accessToken  = at;
-    _refreshToken = rt;
-    if (at) localStorage.setItem('tw_access',  at);
-    else    localStorage.removeItem('tw_access');
-    if (rt) localStorage.setItem('tw_refresh', rt);
-    else    localStorage.removeItem('tw_refresh');
+  function setTokens(a, r) {
+    _accessToken  = a;
+    if (r) { _refreshToken = r; localStorage.setItem('tw_rf', r); }
+    if (a) localStorage.setItem('tw_ac', a);
+  }
+  function clearTokens() {
+    _accessToken = _refreshToken = null;
+    localStorage.removeItem('tw_rf');
+    localStorage.removeItem('tw_ac');
   }
 
-  async function refreshTokens() {
-    if (!_refreshToken) throw new Error('No refresh token');
-    const r = await fetch(`${BASE}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: _refreshToken }),
-    });
-    if (!r.ok) { setTokens(null, null); throw new Error('Refresh failed'); }
-    const d = await r.json();
-    setTokens(d.access_token, d.refresh_token);
-    return d.access_token;
-  }
-
-  async function request(method, path, body, isRetry = false) {
+  async function _req(method, url, body, retry) {
     const headers = { 'Content-Type': 'application/json' };
     if (_accessToken) headers['Authorization'] = `Bearer ${_accessToken}`;
-
     const opts = { method, headers };
-    if (body && !(body instanceof FormData)) opts.body = JSON.stringify(body);
-    if (body instanceof FormData) { delete headers['Content-Type']; opts.body = body; }
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
 
-    let res = await fetch(`${BASE}${path}`, opts);
-
-    if (res.status === 401 && !isRetry) {
-      const data = await res.clone().json().catch(() => ({}));
-      if (data.code === 'TOKEN_EXPIRED' || res.status === 401) {
+    if (res.status === 401 && !retry && _refreshToken) {
+      const d = await res.clone().json().catch(() => ({}));
+      if (d.code === 'TOKEN_EXPIRED') {
         if (_refreshing) {
-          return new Promise((resolve, reject) => {
-            _queue.push({ resolve, reject, method, path, body });
-          });
+          await new Promise(r => _queue.push(r));
+          return _req(method, url, body, true);
         }
         _refreshing = true;
         try {
-          await refreshTokens();
+          const r2 = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: _refreshToken }),
+          });
+          if (r2.ok) {
+            const tk = await r2.json();
+            setTokens(tk.access_token, tk.refresh_token || _refreshToken);
+          } else {
+            clearTokens();
+            App.auth.logout();
+            throw new Error('Session expired');
+          }
+        } finally {
           _refreshing = false;
-          _queue.forEach(q => request(q.method, q.path, q.body, true).then(q.resolve).catch(q.reject));
+          _queue.forEach(fn => fn());
           _queue = [];
-          return request(method, path, body, true);
-        } catch {
-          _refreshing = false;
-          _queue.forEach(q => q.reject(new Error('Auth expired')));
-          _queue = [];
-          App.auth.logout();
-          throw new Error('Session expired');
         }
+        return _req(method, url, body, true);
       }
     }
+    return res;
+  }
 
+  async function json(method, url, body) {
+    const res = await _req(method, url, body);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-      const e   = new Error(err.error || 'Request failed');
-      e.status  = res.status;
-      e.data    = err;
-      throw e;
+      const e = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(e.error || 'Request failed');
     }
     return res.json();
   }
 
   return {
-    get:    (p)    => request('GET',    p),
-    post:   (p, b) => request('POST',   p, b),
-    patch:  (p, b) => request('PATCH',  p, b),
-    delete: (p)    => request('DELETE', p),
-    upload: (p, f) => request('POST',   p, f),
-    setTokens,
-    getTokens: () => ({ access: _accessToken, refresh: _refreshToken }),
-    clear: () => setTokens(null, null),
+    setTokens, clearTokens,
+    get:   (u)    => _req('GET',    u),
+    post:  (u, b) => _req('POST',   u, b),
+    put:   (u, b) => _req('PUT',    u, b),
+    del:   (u, b) => _req('DELETE', u, b),
+    json,
   };
 })();
 
-/* ─── State ─── */
-const State = {
-  user:             null,
-  feedPage:         0,
-  feedLoading:      false,
-  feedEnd:          false,
-  currentPostId:    null,
-  currentConvId:    null,
-  currentUserProf:  null,
-  navHistory:       [],
-  currentTab:       'home',
-  activeStoryGroup: null,
-  activeStoryIdx:   0,
-  storyTimer:       null,
-};
 
-/* ─── Helpers ─── */
-function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr);
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+/* ══════════════════════════════════════════════════════════
+   WEBSOCKET
+══════════════════════════════════════════════════════════ */
+const WS = (() => {
+  let ws = null, subConvId = null;
+  const handlers = {};
+
+  function on(type, fn) { handlers[type] = fn; }
+
+  function connect() {
+    const token = _accessToken;
+    if (!token) return;
+    if (ws && ws.readyState <= 1) ws.close();
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}`);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'auth', token }));
+      if (subConvId) ws.send(JSON.stringify({ type: 'subscribe', conversation_id: subConvId }));
+    };
+    ws.onmessage = e => {
+      try { const msg = JSON.parse(e.data); if (handlers[msg.type]) handlers[msg.type](msg); } catch (_) {}
+    };
+    ws.onclose = () => setTimeout(() => { if (_accessToken) connect(); }, 3000);
+  }
+
+  function subscribe(cid) {
+    subConvId = cid;
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'subscribe', conversation_id: cid }));
+  }
+
+  function unsubscribe() {
+    subConvId = null;
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'unsubscribe' }));
+  }
+
+  return { on, connect, subscribe, unsubscribe };
+})();
+
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+function esc(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-
-function formatCount(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1).replace('.0','') + 'M';
-  if (n >= 1000)    return (n / 1000).toFixed(1).replace('.0','') + 'K';
+function timeAgo(ts) {
+  const s = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (s < 60)      return 'now';
+  if (s < 3600)    return `${Math.floor(s / 60)}m`;
+  if (s < 86400)   return `${Math.floor(s / 3600)}h`;
+  if (s < 2592000) return `${Math.floor(s / 86400)}d`;
+  return new Date(ts).toLocaleDateString();
+}
+function numFmt(n) {
+  n = n || 0;
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return String(n);
 }
-
-function avatarPlaceholder(name) {
-  return (name || '?')[0].toUpperCase();
+function mkInitials(letter, size) {
+  const cols = ['#7B61FF', '#FF61AB', '#00F5D4', '#FF9F40', '#4BC0C8'];
+  const c = cols[letter.charCodeAt(0) % cols.length];
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${c};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size * 0.4)}px;color:#fff;flex-shrink:0;">${letter}</div>`;
 }
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+function avatar(user, size) {
+  size = size || 40;
+  const letter = ((user && (user.display_name || user.username)) || '?')[0].toUpperCase();
+  if (user && user.avatar_url)
+    return `<img src="${esc(user.avatar_url)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML=mkInitials('${letter}',${size})">`;
+  return mkInitials(letter, size);
 }
-
-function parseContent(text) {
-  return escapeHtml(text)
-    .replace(/#([a-zA-Z0-9_]{1,50})/g, '<span class="hashtag" onclick="App.nav.hashtag(\'$1\')">#$1</span>')
-    .replace(/@([a-zA-Z0-9_]{3,30})/g, '<span class="mention" onclick="App.nav.userProfile(\'$1\')">@$1</span>');
+function formatContent(text) {
+  if (!text) return '';
+  return esc(text)
+    .replace(/#(\w+)/g, '<span class="hash-tag" onclick="App.explore.tag(\'$1\')">#$1</span>')
+    .replace(/@(\w+)/g, '<span class="mention-tag" onclick="App.profile.goUser(\'$1\')">@$1</span>')
+    .replace(/\n/g, '<br>');
 }
-
-function userAvatar(user, size = 40) {
-  if (user.avatar_url) {
-    return `<img src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(user.username)}" loading="lazy"/>`;
+function spawnHearts(btn) {
+  const r = btn.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const emojis = ['❤️', '💜', '💗', '✨', '⭐'];
+  for (let i = 0; i < 8; i++) {
+    const p   = document.createElement('div');
+    p.className = 'like-particle';
+    const ang = (360 / 8) * i + Math.random() * 20;
+    const d   = 30 + Math.random() * 30;
+    p.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(ang * Math.PI / 180) * d}px;--dy:${Math.sin(ang * Math.PI / 180) * d}px;`;
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    document.body.appendChild(p);
+    p.addEventListener('animationend', () => p.remove());
   }
-  return `<div class="post-avatar-placeholder" style="font-size:${Math.round(size*0.4)}px;font-weight:700;color:#A0A0BB;">${avatarPlaceholder(user.display_name || user.username)}</div>`;
 }
 
-window.togglePw = (id) => {
-  const el = document.getElementById(id);
-  el.type = el.type === 'password' ? 'text' : 'password';
-};
 
-/* ─── Password Strength ─── */
-function checkPasswordStrength(pw) {
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (/[A-Z]/.test(pw)) score++;
-  if (/[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  const bar = document.getElementById('pw-strength');
-  if (!bar) return;
-  const widths  = ['0%', '20%', '40%', '65%', '85%', '100%'];
-  const colors  = ['#666', '#FF4444', '#FF9900', '#FFC107', '#00C853', '#00E676'];
-  bar.style.setProperty('--pw-w', widths[score]);
-  bar.style.setProperty('--pw-c', colors[score]);
-}
+/* ══════════════════════════════════════════════════════════
+   APP
+══════════════════════════════════════════════════════════ */
+const App = (() => {
 
-/* ════════════════════════════════════════
-   APP OBJECT
-   ════════════════════════════════════════ */
-const App = {
+  /* ── state ── */
+  const S = {
+    user: null,
+    keyPair: null,
+    sharedKeys: {},
+    peerPubs: {},
+    currentScreen: 'home',
+    screenStack: [],
+    feedPage: 0,
+    feedDone: false,
+    feedLoading: false,
+    notifCount: 0,
+    storyGroups: [],
+    storyUI: 0,
+    storyII: 0,
+    storyTimer: null,
+    convId: null,
+    convOther: null,
+    msgBefore: null,
+    msgLoading: false,
+    commentPostId: null,
+    mediaFiles: [],
+  };
 
-  /* ─── Boot ─── */
-  async init() {
-    /* Progress animation */
-    await new Promise(r => setTimeout(r, 1800));
-    const splash = document.getElementById('splash');
-    splash.style.opacity = '0';
-    await new Promise(r => setTimeout(r, 500));
-    splash.style.display = 'none';
-
-    const tokens = API.getTokens();
-    if (tokens.access) {
-      try {
-        const data = await API.get('/auth/me');
-        State.user = data.user;
-        this.showApp();
-      } catch {
-        API.clear();
-        this.showAuth();
-      }
-    } else {
-      this.showAuth();
-    }
-  },
-
-  showApp() {
-    document.getElementById('auth-screen').classList.add('hidden');
-    document.getElementById('app').classList.remove('hidden');
-    this.updateNavAvatar();
-    this.nav.go('home');
-    this.notifications.loadUnreadCount();
-    setInterval(() => this.notifications.loadUnreadCount(), 60000);
-  },
-
-  showAuth() {
-    document.getElementById('auth-screen').classList.remove('hidden');
-    document.getElementById('app').classList.add('hidden');
-  },
-
-  updateNavAvatar() {
-    const el = document.getElementById('nav-avatar');
-    if (!el || !State.user) return;
-    if (State.user.avatar_url) {
-      el.innerHTML = `<img src="${escapeHtml(State.user.avatar_url)}" alt=""/>`;
-    } else {
-      el.innerHTML = `<div style="font-size:12px;font-weight:700;color:#A0A0BB;">${avatarPlaceholder(State.user.display_name)}</div>`;
-    }
-  },
-
-  toast(msg, duration = 2500) {
+  /* ── toast ── */
+  function toast(msg, dur) {
+    dur = dur || 3000;
     const el = document.getElementById('toast');
     el.textContent = msg;
     el.classList.remove('hidden');
-    clearTimeout(el._timer);
-    el._timer = setTimeout(() => el.classList.add('hidden'), duration);
-  },
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => el.classList.add('hidden'), 300);
+    }, dur);
+  }
 
-  /* ─── AUTH ─── */
-  auth: {
+  /* ─────────────── AUTH ─────────────── */
+  const auth = {
     showLogin() {
-      document.getElementById('login-form').classList.remove('hidden');
-      document.getElementById('register-form').classList.add('hidden');
+      document.getElementById('auth-login').classList.remove('hidden');
+      document.getElementById('auth-register').classList.add('hidden');
     },
-    showRegister() {
-      document.getElementById('login-form').classList.add('hidden');
-      document.getElementById('register-form').classList.remove('hidden');
+    showReg() {
+      document.getElementById('auth-login').classList.add('hidden');
+      document.getElementById('auth-register').classList.remove('hidden');
     },
-
     async login() {
-      const identifier = document.getElementById('login-identifier').value.trim();
-      const password   = document.getElementById('login-password').value;
-      const totp       = document.getElementById('login-totp').value.trim();
-      const errEl      = document.getElementById('login-error');
-
-      if (!identifier || !password) {
-        this._showError(errEl, 'Please fill in all fields.');
-        return;
-      }
-
-      const btn = document.querySelector('#login-form .btn-primary');
-      btn.disabled = true; btn.textContent = 'Signing in…';
-
+      const id   = document.getElementById('li-id').value.trim();
+      const pw   = document.getElementById('li-pw').value;
+      const totp = document.getElementById('li-totp').value.trim();
+      const err  = document.getElementById('li-err');
+      err.classList.add('hidden');
       try {
-        const body = { identifier, password };
+        const body = { identifier: id, password: pw };
         if (totp) body.totp_code = totp;
-
-        const data = await API.post('/auth/login', body);
-
+        const res  = await API.post('/api/auth/login', body);
+        const data = await res.json();
         if (data.two_fa_required) {
-          document.getElementById('login-2fa').classList.remove('hidden');
-          document.getElementById('login-totp').focus();
-          errEl.classList.add('hidden');
+          document.getElementById('li-2fa').classList.remove('hidden');
+          document.getElementById('li-totp').focus();
           return;
         }
+        if (!res.ok) { err.textContent = data.error || 'Login failed'; err.classList.remove('hidden'); return; }
+        await _boot(data);
+      } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+    },
+    async register() {
+      const name  = document.getElementById('rg-name').value.trim();
+      const uname = document.getElementById('rg-user').value.trim();
+      const email = document.getElementById('rg-email').value.trim();
+      const pw    = document.getElementById('rg-pw').value;
+      const err   = document.getElementById('rg-err');
+      err.classList.add('hidden');
+      try {
+        const res  = await API.post('/api/auth/register', { display_name: name, username: uname, email, password: pw });
+        const data = await res.json();
+        if (!res.ok) { err.textContent = data.error || 'Registration failed'; err.classList.remove('hidden'); return; }
+        await _boot(data);
+      } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+    },
+    logout() {
+      API.post('/api/auth/logout', { refresh_token: _refreshToken }).catch(() => {});
+      API.clearTokens();
+      S.user = null; S.keyPair = null; S.sharedKeys = {}; S.peerPubs = {};
+      document.getElementById('app').classList.add('hidden');
+      document.getElementById('auth-screen').classList.remove('hidden');
+      auth.showLogin();
+    },
+  };
 
-        API.setTokens(data.access_token, data.refresh_token);
-        State.user = data.user;
-        App.showApp();
+  async function _boot(data) {
+    API.setTokens(data.access_token, data.refresh_token);
+    S.user = data.user;
+    try {
+      S.keyPair = await E2EE.init(S.user.id);
+      const pub = S.keyPair._pubB64 || await E2EE.exportPubRaw(S.keyPair);
+      S.keyPair._pubB64 = pub;
+      await API.json('PUT', '/api/auth/public-key', { public_key: pub });
+    } catch (e) { console.warn('E2EE init:', e); }
+    WS.connect();
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    _updateNavAv();
+    nav.go('home');
+    _pollNotifs();
+    feed.load(true);
+    stories.load();
+  }
+
+  function _updateNavAv() {
+    if (!S.user) return;
+    document.getElementById('nav-av').innerHTML = avatar(S.user, 26);
+  }
+
+  /* ─────────────── NAV ─────────────── */
+  const SUB = new Set(['search', 'post', 'userprofile', 'conv', 'settings', 'editprofile', '2fa']);
+  const TITLES = { search: 'Search', post: 'Post', userprofile: 'Profile', conv: '', settings: 'Settings', editprofile: 'Edit Profile', '2fa': 'Two-Factor Auth' };
+
+  const nav = {
+    go(screen, data) {
+      const prev = S.currentScreen;
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById('sc-' + screen);
+      if (!el) return;
+      el.classList.add('active');
+      S.currentScreen = screen;
+
+      const back  = document.getElementById('topbar-back');
+      const title = document.getElementById('topbar-title');
+      const logo  = document.getElementById('topbar-logo');
+      const right = document.getElementById('topbar-right');
+      const bnav  = document.getElementById('bottomnav');
+
+      if (SUB.has(screen)) {
+        S.screenStack.push(prev);
+        back.classList.remove('hidden'); logo.classList.add('hidden');
+        title.classList.remove('hidden'); title.textContent = TITLES[screen] || '';
+        right.style.visibility = 'hidden';
+        bnav.style.transform = 'translateY(100%)';
+      } else {
+        S.screenStack = [];
+        back.classList.add('hidden'); logo.classList.remove('hidden');
+        title.classList.add('hidden');
+        right.style.visibility = '';
+        bnav.style.transform = '';
+        document.querySelectorAll('.nav-item[data-tab]').forEach(b =>
+          b.classList.toggle('active', b.dataset.tab === screen));
+        _moveIndicator(screen);
+      }
+      _loadScreen(screen, data);
+    },
+    back() { nav.go(S.screenStack.pop() || 'home'); },
+  };
+
+  function _moveIndicator(tab) {
+    const btn = document.querySelector('.nav-item[data-tab="' + tab + '"]');
+    const ind = document.getElementById('nav-indicator');
+    if (!btn || !ind) return;
+    const br = btn.getBoundingClientRect();
+    const nr = document.getElementById('bottomnav').getBoundingClientRect();
+    ind.style.transform = 'translateX(' + (br.left - nr.left + br.width / 2 - 20) + 'px)';
+  }
+
+  function _loadScreen(screen, data) {
+    switch (screen) {
+      case 'home':          feed.load(true); stories.load(); break;
+      case 'explore':       explore.load();  break;
+      case 'notifications': notifications.load(); break;
+      case 'profile':       profile.loadOwn(); break;
+      case 'chat':          chatList.load(); break;
+      case 'search':        setTimeout(() => { const q = document.getElementById('search-q'); if (q) q.focus(); }, 80); break;
+      case 'userprofile':   if (data) profile.loadUser(data); break;
+      case 'conv':          if (data) chatConv.open(data); break;
+      case 'settings':      settings.load(); break;
+      case 'editprofile':   editProfile.load(); break;
+      case '2fa':           twofa.load(); break;
+    }
+  }
+
+  /* ─────────────── FEED ─────────────── */
+  const feed = {
+    async load(reset) {
+      if (S.feedLoading) return;
+      if (!reset && S.feedDone) return;
+      S.feedLoading = true;
+      const spin = document.getElementById('feed-spinner');
+      spin.classList.remove('hidden');
+      if (reset) { S.feedPage = 0; S.feedDone = false; document.getElementById('feed-list').innerHTML = ''; }
+      try {
+        const data = await API.json('GET', '/api/feed/home?page=' + S.feedPage);
+        const posts = data.posts || [];
+        S.feedPage++;
+        if (!posts.length) S.feedDone = true;
+        posts.forEach(p => renderPost(p, document.getElementById('feed-list')));
+      } catch (e) { toast(e.message); }
+      finally { S.feedLoading = false; spin.classList.add('hidden'); }
+    },
+  };
+
+  function renderPost(p, container, prepend) {
+    const div   = document.createElement('div');
+    div.className = 'post-card';
+    div.dataset.postId = p.id;
+    const liked = !!p.is_liked, bmed = !!p.is_bookmarked;
+    div.innerHTML =
+      '<div class="post-header">' +
+        '<div class="post-av" onclick="App.profile.goUser(\'' + esc(p.username) + '\')">' + avatar(p, 42) + '</div>' +
+        '<div class="post-meta">' +
+          '<div class="post-name-row">' +
+            '<span class="post-username" onclick="App.profile.goUser(\'' + esc(p.username) + '\')">' + esc(p.display_name || p.username) + '</span>' +
+            (p.is_verified ? '<svg class="verified-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#7B61FF"/><path d="M8 12l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '') +
+          '</div>' +
+          '<span class="post-handle">@' + esc(p.username) + ' · ' + timeAgo(p.created_at) + '</span>' +
+        '</div>' +
+        '<button class="post-more-btn" onclick="App.post.more(' + p.id + ',\'' + esc(p.username) + '\')">⋯</button>' +
+      '</div>' +
+      '<div class="post-content">' + formatContent(p.content) + '</div>' +
+      _mediaHtml(p) +
+      '<div class="post-actions">' +
+        '<button class="pa-btn' + (liked ? ' liked' : '') + '" id="lbtn-' + p.id + '" onclick="App.post.toggleLike(' + p.id + ',this)">' +
+          '<svg viewBox="0 0 24 24" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+          '<span id="lcnt-' + p.id + '">' + numFmt(p.like_count) + '</span>' +
+        '</button>' +
+        '<button class="pa-btn" onclick="App.comments.open(' + p.id + ')">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+          '<span>' + numFmt(p.comment_count) + '</span>' +
+        '</button>' +
+        '<button class="pa-btn" onclick="App.post.share(' + p.id + ')">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+        '</button>' +
+        '<button class="pa-btn' + (bmed ? ' bookmarked' : '') + '" id="bbtn-' + p.id + '" onclick="App.post.toggleBookmark(' + p.id + ',this)">' +
+          '<svg viewBox="0 0 24 24" fill="' + (bmed ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
+        '</button>' +
+      '</div>';
+    if (prepend) container.prepend(div);
+    else container.appendChild(div);
+  }
+
+  function _mediaHtml(p) {
+    if (!p.media_urls) return '';
+    var urls; try { urls = JSON.parse(p.media_urls); } catch (_) { return ''; }
+    if (!urls || !urls.length) return '';
+    if (urls.length === 1) {
+      var u = urls[0];
+      return u.match(/\.(mp4|webm|mov)$/i)
+        ? '<video class="post-media" src="' + u + '" controls playsinline></video>'
+        : '<img class="post-media" src="' + u + '" alt="" loading="lazy" onclick="App.lightbox(\'' + u + '\')">';
+    }
+    return '<div class="post-media-grid">' + urls.map(function(u) {
+      return '<img src="' + u + '" loading="lazy" alt="" onclick="App.lightbox(\'' + u + '\')">';
+    }).join('') + '</div>';
+  }
+
+  /* ─────────────── STORIES ─────────────── */
+  const stories = {
+    async load() {
+      try {
+        const data   = await API.json('GET', '/api/feed/stories');
+        const groups = data.stories || [];
+        S.storyGroups = groups;
+        const strip = document.getElementById('stories-strip');
+        const add   = strip.querySelector('.add-story');
+        strip.innerHTML = '';
+        strip.appendChild(add);
+        groups.forEach(function(g, i) {
+          const chip = document.createElement('div');
+          chip.className = 'story-chip';
+          chip.onclick = function() { stories.view(i); };
+          chip.innerHTML =
+            '<div class="story-ring-wrap ' + (g.has_unviewed ? 'has-story' : 'seen-story') + '">' +
+              '<div class="story-av-shell">' + avatar(g, 52) + '</div>' +
+            '</div>' +
+            '<span>' + esc(g.display_name || g.username) + '</span>';
+          strip.appendChild(chip);
+        });
+      } catch (_) {}
+    },
+    view(ui) {
+      if (!S.storyGroups.length) return;
+      S.storyUI = ui; S.storyII = 0;
+      document.getElementById('modal-story').classList.remove('hidden');
+      stories._show();
+    },
+    _show() {
+      const g = S.storyGroups[S.storyUI];
+      if (!g || !g.items || !g.items.length) { stories.close(); return; }
+      const s = g.items[S.storyII];
+      document.getElementById('story-segs').innerHTML = g.items.map(function(_, i) {
+        return '<div class="story-seg' + (i < S.storyII ? ' done' : i === S.storyII ? ' active' : '') + '"><div class="seg-fill"></div></div>';
+      }).join('');
+      document.getElementById('story-vuser').innerHTML =
+        avatar(g, 36) +
+        '<div><span class="sv-name">' + esc(g.display_name || g.username) + '</span>' +
+        '<span class="sv-time"> ' + timeAgo(s.created_at) + '</span></div>';
+      const body = document.getElementById('story-vbody');
+      if (s.media_url && s.media_url.match(/\.(mp4|webm)$/i))
+        body.innerHTML = '<video class="sv-media" src="' + s.media_url + '" autoplay muted playsinline loop></video>';
+      else if (s.media_url)
+        body.innerHTML = '<img class="sv-media" src="' + s.media_url + '" alt="">';
+      else
+        body.innerHTML = '<div class="sv-text-story">' + esc(s.content || '') + '</div>';
+      clearTimeout(S.storyTimer);
+      S.storyTimer = setTimeout(function() { stories.next(); }, (s.duration || 5) * 1000);
+    },
+    next() {
+      const g = S.storyGroups[S.storyUI];
+      if (S.storyII < ((g && g.items && g.items.length) || 0) - 1) { S.storyII++; stories._show(); }
+      else if (S.storyUI < S.storyGroups.length - 1) { S.storyUI++; S.storyII = 0; stories._show(); }
+      else stories.close();
+    },
+    prev() {
+      if (S.storyII > 0) { S.storyII--; stories._show(); }
+      else if (S.storyUI > 0) { S.storyUI--; S.storyII = 0; stories._show(); }
+    },
+    close() { clearTimeout(S.storyTimer); document.getElementById('modal-story').classList.add('hidden'); },
+    showCreate() { toast('Story creation coming soon!'); },
+  };
+
+  /* ─────────────── POST ─────────────── */
+  const post = {
+    async toggleLike(postId, btn) {
+      const was = btn.classList.contains('liked');
+      const cnt = document.getElementById('lcnt-' + postId);
+      const n   = parseInt(cnt.textContent) || 0;
+      btn.classList.toggle('liked');
+      btn.querySelector('svg').setAttribute('fill', was ? 'none' : 'currentColor');
+      if (!was) spawnHearts(btn);
+      cnt.textContent = numFmt(was ? Math.max(0, n - 1) : n + 1);
+      try {
+        if (was) await API.del('/api/posts/' + postId + '/like');
+        else     await API.post('/api/posts/' + postId + '/like');
       } catch (e) {
-        this._showError(errEl, e.message || 'Login failed.');
-        if (e.data?.two_fa_required) {
-          document.getElementById('login-2fa').classList.remove('hidden');
-        }
-      } finally {
-        btn.disabled = false; btn.textContent = 'Sign In';
+        btn.classList.toggle('liked');
+        btn.querySelector('svg').setAttribute('fill', was ? 'currentColor' : 'none');
+        cnt.textContent = numFmt(n);
+        toast(e.message);
       }
     },
+    async toggleBookmark(postId, btn) {
+      const was = btn.classList.contains('bookmarked');
+      btn.classList.toggle('bookmarked');
+      btn.querySelector('svg').setAttribute('fill', was ? 'none' : 'currentColor');
+      try {
+        if (was) await API.del('/api/posts/' + postId + '/bookmark');
+        else     await API.post('/api/posts/' + postId + '/bookmark');
+        toast(was ? 'Removed from bookmarks' : 'Bookmarked!');
+      } catch (e) {
+        btn.classList.toggle('bookmarked');
+        btn.querySelector('svg').setAttribute('fill', was ? 'currentColor' : 'none');
+        toast(e.message);
+      }
+    },
+    showCreate() {
+      document.getElementById('modal-create').classList.remove('hidden');
+      document.getElementById('post-ta').value = '';
+      document.getElementById('post-char').textContent = '5000';
+      document.getElementById('media-preview-row').innerHTML = '';
+      S.mediaFiles = [];
+      document.getElementById('create-user-row').innerHTML =
+        avatar(S.user, 40) +
+        '<div><strong>' + esc(S.user.display_name || S.user.username) + '</strong>' +
+        '<span class="sub-text"> @' + esc(S.user.username) + '</span></div>';
+      setTimeout(function() { document.getElementById('post-ta').focus(); }, 80);
+    },
+    closeCreate() { document.getElementById('modal-create').classList.add('hidden'); },
+    onInput()     { document.getElementById('post-char').textContent = 5000 - document.getElementById('post-ta').value.length; },
+    addMedia(e) {
+      S.mediaFiles.push.apply(S.mediaFiles, Array.from(e.target.files));
+      const row = document.getElementById('media-preview-row');
+      row.innerHTML = '';
+      S.mediaFiles.forEach(function(f, i) {
+        const u = URL.createObjectURL(f);
+        const d = document.createElement('div');
+        d.className = 'media-prev-item';
+        d.innerHTML = (f.type.startsWith('video') ? '<video src="' + u + '" class="media-thumb"></video>' : '<img src="' + u + '" class="media-thumb">') +
+          '<button class="media-remove" onclick="App.post._rmMedia(' + i + ')">×</button>';
+        row.appendChild(d);
+      });
+    },
+    _rmMedia(i) { S.mediaFiles.splice(i, 1); post.addMedia({ target: { files: [] } }); },
+    async submit() {
+      const content = document.getElementById('post-ta').value.trim();
+      const vis     = document.getElementById('post-vis').value;
+      if (!content && !S.mediaFiles.length) { toast('Write something first!'); return; }
+      const btn = document.getElementById('post-submit-btn');
+      btn.disabled = true; btn.textContent = 'Posting…';
+      try {
+        const mediaUrls = [];
+        for (var i = 0; i < S.mediaFiles.length; i++) {
+          const fd = new FormData(); fd.append('media', S.mediaFiles[i]);
+          const r  = await fetch('/api/upload/media', { method: 'POST', headers: { Authorization: 'Bearer ' + _accessToken }, body: fd });
+          if (r.ok) { const d = await r.json(); mediaUrls.push(d.url); }
+        }
+        const data = await API.json('POST', '/api/posts', { content: content, visibility: vis, media_urls: mediaUrls.length ? mediaUrls : undefined });
+        post.closeCreate();
+        toast('Posted!');
+        renderPost(data.post, document.getElementById('feed-list'), true);
+      } catch (e) { toast(e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Post'; }
+    },
+    more(postId, username) {
+      const isOwn = S.user && S.user.username === username;
+      actionSheet(isOwn
+        ? [{ label: '🗑️ Delete post', action: function() { post._delete(postId); } }]
+        : [{ label: '🚩 Report post', action: function() { post._report(postId); } },
+           { label: '👤 View @' + username, action: function() { profile.goUser(username); } }]);
+    },
+    async _delete(postId) {
+      try {
+        await API.json('DELETE', '/api/posts/' + postId);
+        const c = document.querySelector('[data-post-id="' + postId + '"]');
+        if (c) { c.style.opacity = '0'; c.style.transition = 'opacity .3s'; setTimeout(function() { c.remove(); }, 300); }
+        toast('Deleted.');
+      } catch (e) { toast(e.message); }
+    },
+    async _report(postId) {
+      try { await API.post('/api/posts/' + postId + '/report', { reason: 'spam' }); toast('Reported. Thank you.'); }
+      catch (e) { toast(e.message); }
+    },
+    share(postId) {
+      const url = location.origin + '/post/' + postId;
+      if (navigator.share) navigator.share({ url: url });
+      else navigator.clipboard.writeText(url).then(function() { toast('Link copied!'); });
+    },
+    async openDetail(postId) {
+      try {
+        const data = await API.json('GET', '/api/posts/' + postId);
+        const cont = document.getElementById('post-detail-content');
+        cont.innerHTML = '';
+        renderPost(data.post, cont);
+        nav.go('post');
+      } catch (e) { toast(e.message); }
+    },
+  };
 
-    async register() {
-      const display_name = document.getElementById('reg-display').value.trim();
-      const username     = document.getElementById('reg-username').value.trim();
-      const email        = document.getElementById('reg-email').value.trim();
-      const password     = document.getElementById('reg-password').value;
-      const errEl        = document.getElementById('reg-error');
+  /* ─────────────── COMMENTS ─────────────── */
+  const comments = {
+    async open(postId) {
+      S.commentPostId = postId;
+      document.getElementById('modal-comments').classList.remove('hidden');
+      document.getElementById('comment-av-me').innerHTML = avatar(S.user, 36);
+      await comments._load();
+    },
+    async _load() {
+      try {
+        const data = await API.json('GET', '/api/posts/' + S.commentPostId + '/comments');
+        const list = document.getElementById('comments-list');
+        list.innerHTML = '';
+        (data.comments || []).forEach(function(c) {
+          const el = document.createElement('div');
+          el.className = 'comment-item';
+          el.innerHTML =
+            '<div class="comment-av">' + avatar(c, 34) + '</div>' +
+            '<div class="comment-body">' +
+              '<span class="comment-name">' + esc(c.display_name || c.username) + '</span>' +
+              '<span class="comment-handle"> @' + esc(c.username) + '</span>' +
+              '<p class="comment-text">' + formatContent(c.content) + '</p>' +
+              '<span class="comment-time">' + timeAgo(c.created_at) + '</span>' +
+            '</div>';
+          list.appendChild(el);
+        });
+      } catch (_) {}
+    },
+    async submit() {
+      const inp = document.getElementById('comment-inp');
+      const txt = inp.value.trim();
+      if (!txt) return;
+      inp.value = '';
+      try { await API.json('POST', '/api/posts/' + S.commentPostId + '/comments', { content: txt }); await comments._load(); }
+      catch (e) { toast(e.message); }
+    },
+    close() { document.getElementById('modal-comments').classList.add('hidden'); },
+  };
 
-      if (!username || !email || !password) {
-        this._showError(errEl, 'Please fill in all required fields.');
+  /* ─────────────── EXPLORE ─────────────── */
+  const explore = {
+    _t: null,
+    debounce() { clearTimeout(explore._t); explore._t = setTimeout(function() { explore._search(); }, 300); },
+    async load() {
+      try {
+        const trend = await API.json('GET', '/api/feed/trending');
+        const grid  = await API.json('GET', '/api/feed/explore');
+        const tags  = trend.tags || [];
+        document.getElementById('exp-trending').innerHTML = tags.length
+          ? '<div class="section-head">Trending</div><div class="trending-chips">' +
+            tags.map(function(t) {
+              return '<button class="trend-chip" onclick="App.explore.tag(\'' + esc(t.tag) + '\')">#' + esc(t.tag) + '<span class="trend-count">' + numFmt(t.count) + '</span></button>';
+            }).join('') + '</div>'
+          : '';
+        const gridEl = document.getElementById('exp-grid');
+        gridEl.innerHTML = '';
+        (grid.posts || []).forEach(function(p) {
+          const cell = document.createElement('div');
+          cell.className = 'exp-cell';
+          cell.onclick = function() { post.openDetail(p.id); };
+          var thumb = '';
+          if (p.media_urls) { try { var u = JSON.parse(p.media_urls); if (u[0]) thumb = '<img src="' + u[0] + '" loading="lazy" alt="">'; } catch (_) {} }
+          cell.innerHTML = thumb || '<div class="exp-text-cell">' + esc((p.content || '').slice(0, 80)) + '</div>';
+          gridEl.appendChild(cell);
+        });
+      } catch (_) {}
+    },
+    async _search() {
+      const q = document.getElementById('exp-q').value.trim();
+      if (!q) {
+        document.getElementById('exp-results').classList.add('hidden');
+        document.getElementById('exp-main').classList.remove('hidden');
         return;
       }
-
-      const btn = document.querySelector('#register-form .btn-primary');
-      btn.disabled = true; btn.textContent = 'Creating account…';
-
+      document.getElementById('exp-main').classList.add('hidden');
+      document.getElementById('exp-results').classList.remove('hidden');
       try {
-        const data = await API.post('/auth/register', { username, email, password, display_name });
-        API.setTokens(data.access_token, data.refresh_token);
-        State.user = data.user;
-        App.showApp();
-      } catch (e) {
-        this._showError(errEl, e.message || 'Registration failed.');
-      } finally {
-        btn.disabled = false; btn.textContent = 'Create Account';
-      }
+        const data = await API.json('GET', '/api/search?q=' + encodeURIComponent(q));
+        _renderSearch(data, document.getElementById('exp-results'));
+      } catch (_) {}
     },
+    tag(hashtag) { nav.go('search'); document.getElementById('search-q').value = '#' + hashtag; search.run(); },
+  };
 
-    async logout() {
-      const refresh = API.getTokens().refresh;
-      try { await API.post('/auth/logout', { refresh_token: refresh }); } catch(_) {}
-      API.clear();
-      State.user = null;
-      State.feedPage = 0;
-      State.feedEnd = false;
-      document.getElementById('feed-container').innerHTML = '';
-      App.showAuth();
+  /* ─────────────── SEARCH ─────────────── */
+  const search = {
+    async run() {
+      const q   = document.getElementById('search-q').value.trim();
+      const out = document.getElementById('search-out');
+      if (!q) { out.innerHTML = ''; return; }
+      try { const d = await API.json('GET', '/api/search?q=' + encodeURIComponent(q)); _renderSearch(d, out); }
+      catch (_) {}
     },
+  };
 
-    _showError(el, msg) {
-      el.textContent = msg;
-      el.classList.remove('hidden');
-    },
-  },
-
-  /* ─── NAVIGATION ─── */
-  nav: {
-    go(tab, data) {
-      /* Hide all screens */
-      document.querySelectorAll('.tab-screen').forEach(s => s.classList.remove('active'));
-
-      /* Update bottom nav */
-      document.querySelectorAll('.nav-btn[data-tab]').forEach(b => {
-        b.classList.toggle('active', b.dataset.tab === tab);
+  function _renderSearch(data, container) {
+    container.innerHTML = '';
+    const users  = data.users || [];
+    const posts2 = data.posts || [];
+    if (users.length) {
+      const sec = document.createElement('div');
+      sec.innerHTML = '<div class="section-head">People</div>';
+      users.forEach(function(u) {
+        const row = document.createElement('div');
+        row.className = 'user-row';
+        row.innerHTML =
+          avatar(u, 46) +
+          '<div class="user-row-info" onclick="App.profile.goUser(\'' + esc(u.username) + '\')">' +
+            '<span class="user-row-name">' + esc(u.display_name || u.username) + '</span>' +
+            '<span class="user-row-handle">@' + esc(u.username) + '</span>' +
+          '</div>' +
+          '<button class="btn-follow-sm' + (u.is_following ? ' following' : '') + '" onclick="App.profile.followBtn(' + u.id + ',this)">' + (u.is_following ? 'Following' : 'Follow') + '</button>';
+        sec.appendChild(row);
       });
+      container.appendChild(sec);
+    }
+    if (posts2.length) {
+      const sec = document.createElement('div');
+      sec.innerHTML = '<div class="section-head">Posts</div>';
+      posts2.forEach(function(p) { renderPost(p, sec); });
+      container.appendChild(sec);
+    }
+    if (!users.length && !posts2.length)
+      container.innerHTML = '<div class="empty-state">No results found.</div>';
+  }
 
-      /* Show/hide header */
-      const topBar = document.getElementById('top-bar');
-      const wordmark = topBar.querySelector('.app-wordmark');
-      const titleEl  = document.getElementById('top-bar-title');
-      const rightEl  = document.querySelector('.top-bar-right');
-
-      if (['home', 'explore', 'notifications', 'profile', 'chat'].includes(tab)) {
-        topBar.style.display = '';
-        wordmark.style.display = tab === 'home' ? '' : 'none';
-        titleEl.textContent = tab === 'home' ? '' : tab.charAt(0).toUpperCase() + tab.slice(1);
-        rightEl.style.display = tab === 'home' ? '' : 'none';
-        document.getElementById('bottom-nav').style.display = '';
-        State.navHistory = [];
-        State.currentTab = tab;
-      } else {
-        /* Sub-screen */
-        topBar.style.display = 'none';
-        document.getElementById('bottom-nav').style.display = 'none';
-        State.navHistory.push(State.currentTab);
-      }
-
-      const screen = document.getElementById(`screen-${tab}`);
-      if (screen) {
-        screen.classList.add('active');
-        /* Lazy load content */
-        if (tab === 'home') App.feed.load();
-        else if (tab === 'explore') App.explore.load();
-        else if (tab === 'notifications') App.notifications.load();
-        else if (tab === 'profile') App.profile.loadOwn();
-        else if (tab === 'chat') App.chat.loadList();
-        else if (tab === 'search') { document.getElementById('search-input-full')?.focus(); }
-        else if (tab === 'settings') App.settings.render();
-        else if (tab === 'edit-profile') App.profile.renderEdit();
-        else if (tab === '2fa') App.settings.render2FA();
-      }
-    },
-
-    back() {
-      const prev = State.navHistory.pop() || State.currentTab;
-      this.go(prev);
-    },
-
-    async userProfile(usernameOrId) {
-      this.go('user-profile');
-      const el = document.getElementById('user-profile-content');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  /* ─────────────── NOTIFICATIONS ─────────────── */
+  const notifications = {
+    async load() {
+      const list = document.getElementById('notif-list');
+      list.innerHTML = '<div class="center-spin"><div class="spin-ring"></div></div>';
       try {
-        const isId   = /^\d+$/.test(String(usernameOrId));
-        const prefix = isId ? `/users/by-id/${usernameOrId}` : `/users/${usernameOrId}`;
-        const data   = await API.get(prefix);
-        State.currentUserProf = data.user;
-        document.getElementById('user-profile-title').textContent = data.user.username;
-        App.profile.renderFull(data.user, el);
-      } catch (e) {
-        el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">😕</div><h3>Not Found</h3><p>${escapeHtml(e.message)}</p></div>`;
-      }
+        const data   = await API.json('GET', '/api/notifications');
+        const notifs = data.notifications || [];
+        list.innerHTML = '';
+        if (!notifs.length) { list.innerHTML = '<div class="empty-state">No notifications yet.</div>'; return; }
+        notifs.forEach(function(n) {
+          const el = document.createElement('div');
+          el.className = 'notif-item' + (n.is_read ? '' : ' unread');
+          el.innerHTML =
+            '<div class="notif-av">' + avatar({ avatar_url: n.actor_avatar, display_name: n.actor_display || n.actor_username, username: n.actor_username }, 40) + '</div>' +
+            '<div class="notif-body">' +
+              '<span class="notif-actor">' + esc(n.actor_display || n.actor_username) + '</span>' +
+              '<span class="notif-msg"> ' + esc(n.message) + '</span>' +
+              '<div class="notif-time">' + timeAgo(n.created_at) + '</div>' +
+            '</div>';
+          el.onclick = function() {
+            if (!n.is_read) { API.post('/api/notifications/' + n.id + '/read').catch(function() {}); el.classList.remove('unread'); }
+            if (n.entity_type === 'post' && n.entity_id) post.openDetail(n.entity_id);
+            else if (n.actor_username) profile.goUser(n.actor_username);
+          };
+          list.appendChild(el);
+        });
+        API.post('/api/notifications/read-all').catch(function() {});
+        S.notifCount = 0;
+        document.getElementById('notif-badge').classList.add('hidden');
+      } catch (e) { list.innerHTML = '<div class="empty-state">' + e.message + '</div>'; }
     },
+  };
 
-    async openPost(postId) {
-      State.currentPostId = postId;
-      this.go('post');
-      const el = document.getElementById('single-post-content');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+  async function _pollNotifs() {
+    try {
+      const data = await API.json('GET', '/api/notifications/unread-count');
+      const cnt  = data.count || 0;
+      S.notifCount = cnt;
+      const badge = document.getElementById('notif-badge');
+      if (cnt > 0) { badge.textContent = cnt > 99 ? '99+' : cnt; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    } catch (_) {}
+    setTimeout(_pollNotifs, 30000);
+  }
+
+  /* ─────────────── PROFILE ─────────────── */
+  const profile = {
+    async loadOwn() {
+      if (!S.user) return;
+      const el = document.getElementById('own-profile');
+      el.innerHTML = '<div class="center-spin"><div class="spin-ring"></div></div>';
       try {
-        const data = await API.get(`/posts/${postId}`);
-        el.innerHTML = App.feed.renderPostCard(data.post);
-        /* Load comments inline */
-        el.insertAdjacentHTML('beforeend', '<div id="inline-comments"></div>');
-        App.comments.loadInline(postId, document.getElementById('inline-comments'));
-      } catch(e) {
-        el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">😕</div><h3>Post not found</h3></div>`;
-      }
+        const data = await API.json('GET', '/api/users/' + S.user.username);
+        el.innerHTML = _profileHTML(data.user, data.posts || [], true);
+      } catch (e) { el.innerHTML = '<div class="empty-state">' + e.message + '</div>'; }
     },
-
-    hashtag(tag) {
-      App.explore.loadHashtag(tag);
-    },
-  },
-
-  /* ─── FEED ─── */
-  feed: {
-    async load(reset = false) {
-      if (reset) { State.feedPage = 0; State.feedEnd = false; document.getElementById('feed-container').innerHTML = ''; App.stories.load(); }
-      if (State.feedLoading || State.feedEnd) return;
-      State.feedLoading = true;
-
-      const loader = document.getElementById('feed-loader');
-      loader.classList.remove('hidden');
-
+    goUser(username) { nav.go('userprofile', username); },
+    async loadUser(username) {
+      const el = document.getElementById('user-profile-out');
+      el.innerHTML = '<div class="center-spin"><div class="spin-ring"></div></div>';
+      document.getElementById('topbar-title').textContent = '@' + username;
       try {
-        const data = await API.get(`/feed/home?limit=15&offset=${State.feedPage * 15}`);
-        const container = document.getElementById('feed-container');
-        if (data.posts.length === 0) {
-          State.feedEnd = true;
-          if (State.feedPage === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🌟</div><h3>Your feed is empty</h3><p>Follow people to see their posts here.</p><button class="btn-primary" onclick="App.nav.go('explore')" style="margin-top:16px">Explore</button></div>`;
-          }
-        } else {
-          container.insertAdjacentHTML('beforeend', data.posts.map(p => this.renderPostCard(p)).join(''));
-          State.feedPage++;
-          if (!data.has_more) State.feedEnd = true;
-        }
-      } catch(e) {
-        if (State.feedPage === 0) {
-          document.getElementById('feed-container').innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Couldn't load feed</h3><p>${escapeHtml(e.message)}</p></div>`;
-        }
-      } finally {
-        State.feedLoading = false;
-        loader.classList.add('hidden');
-      }
+        const data = await API.json('GET', '/api/users/' + username);
+        el.innerHTML = _profileHTML(data.user, data.posts || [], S.user && S.user.id === data.user.id);
+      } catch (e) { el.innerHTML = '<div class="empty-state">' + e.message + '</div>'; }
     },
+    async followBtn(userId, btn) {
+      const was = btn.classList.contains('following');
+      btn.textContent = was ? 'Follow' : 'Following';
+      btn.classList.toggle('following');
+      try {
+        if (was) await API.del('/api/users/' + userId + '/follow');
+        else     await API.post('/api/users/' + userId + '/follow');
+      } catch (e) { btn.textContent = was ? 'Following' : 'Follow'; btn.classList.toggle('following'); toast(e.message); }
+    },
+    async message(userId) {
+      try {
+        const data = await API.json('POST', '/api/chat/conversations', { user_id: userId });
+        var otherUser = null;
+        try { const ud = await API.json('GET', '/api/users/by-id/' + userId); otherUser = ud.user; } catch (_) {}
+        nav.go('conv', { conversation_id: data.conversation_id, other_user: otherUser });
+      } catch (e) { toast(e.message); }
+    },
+  };
 
-    renderPostCard(post) {
-      const u = post.user;
-      const hasMedia = post.media_urls && post.media_urls.length;
-      const mediaHtml = hasMedia ? `<div class="post-media">${post.media_urls.map(url =>
-        url.match(/\.(mp4|webm|mov)$/i)
-          ? `<video src="${escapeHtml(url)}" controls playsinline></video>`
-          : `<img src="${escapeHtml(url)}" alt="post media" loading="lazy" onclick="App.nav.openPost(${post.id})"/>`
-      ).join('')}</div>` : '';
+  function _profileHTML(u, posts2, isOwn) {
+    const btn = isOwn
+      ? '<button class="btn-outline" onclick="App.nav.go(\'editprofile\')">Edit Profile</button>' +
+        '<button class="btn-outline" onclick="App.nav.go(\'settings\')" style="margin-left:8px;">Settings</button>'
+      : '<div style="display:flex;gap:8px;">' +
+          '<button class="btn-follow-sm' + (u.is_following ? ' following' : '') + '" onclick="App.profile.followBtn(' + u.id + ',this)">' + (u.is_following ? 'Following' : 'Follow') + '</button>' +
+          '<button class="btn-outline-sm" onclick="App.profile.message(' + u.id + ')">Message</button>' +
+        '</div>';
+    const grid = posts2.length
+      ? posts2.map(function(p) { return '<div class="profile-post-cell" onclick="App.post.openDetail(' + p.id + ')">' + _miniThumb(p) + '</div>'; }).join('')
+      : '<div class="empty-state" style="grid-column:1/-1;padding:24px;">No posts yet.</div>';
+    return '<div class="profile-cover"' + (u.cover_url ? ' style="background-image:url(' + u.cover_url + ')"' : '') + '></div>' +
+      '<div class="profile-av-wrap">' +
+        avatar(u, 80) +
+        (isOwn ? '<label class="av-edit-btn" for="av-file-inp">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>' +
+          '<input id="av-file-inp" type="file" accept="image/*" class="hidden" onchange="App.uploadAvatar(event)">' +
+        '</label>' : '') +
+      '</div>' +
+      '<div class="profile-info">' +
+        '<div class="profile-name-row">' +
+          '<h2 class="profile-display">' + esc(u.display_name || u.username) + '</h2>' +
+          (u.is_verified ? '<svg class="verified-ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#7B61FF"/><path d="M8 12l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '') +
+        '</div>' +
+        '<p class="profile-handle">@' + esc(u.username) + '</p>' +
+        (u.bio ? '<p class="profile-bio">' + esc(u.bio) + '</p>' : '') +
+        '<div class="profile-stats">' +
+          '<span><strong>' + numFmt(u.post_count) + '</strong> Posts</span>' +
+          '<span><strong>' + numFmt(u.follower_count) + '</strong> Followers</span>' +
+          '<span><strong>' + numFmt(u.following_count) + '</strong> Following</span>' +
+        '</div>' +
+        btn +
+      '</div>' +
+      '<div class="profile-posts">' + grid + '</div>';
+  }
 
-      const tagsHtml = post.hashtags && post.hashtags.length
-        ? `<div class="post-hashtags">${post.hashtags.map(t => `<span class="post-tag" onclick="App.nav.hashtag('${escapeHtml(t)}')">#${escapeHtml(t)}</span>`).join('')}</div>`
+  function _miniThumb(p) {
+    if (p.media_urls) { try { var u = JSON.parse(p.media_urls); if (u[0]) return '<img src="' + u[0] + '" loading="lazy" alt="">'; } catch (_) {} }
+    return '<div class="mini-text-post">' + esc((p.content || '').slice(0, 60)) + '</div>';
+  }
+
+  async function uploadAvatar(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const fd = new FormData(); fd.append('avatar', file);
+    try {
+      const r = await fetch('/api/upload/avatar', { method: 'POST', headers: { Authorization: 'Bearer ' + _accessToken }, body: fd });
+      if (r.ok) { const d = await r.json(); S.user.avatar_url = d.url; _updateNavAv(); profile.loadOwn(); toast('Avatar updated!'); }
+      else { const err = await r.json(); toast(err.error || 'Upload failed'); }
+    } catch (e) { toast(e.message); }
+  }
+
+  /* ─────────────── CHAT LIST ─────────────── */
+  const chatList = {
+    async load() {
+      const list = document.getElementById('chat-list');
+      list.innerHTML = '';
+      try {
+        const data  = await API.json('GET', '/api/chat/conversations');
+        const convs = data.conversations || [];
+        if (!convs.length) { list.innerHTML = '<div class="empty-state">No messages yet.</div>'; return; }
+        convs.forEach(function(c) {
+          const el = document.createElement('div');
+          el.className = 'chat-row' + (c.unread_count > 0 ? ' unread' : '');
+          el.innerHTML =
+            avatar(c.other_user, 50) +
+            '<div class="chat-row-info">' +
+              '<div class="chat-row-top">' +
+                '<span class="chat-row-name">' + esc((c.other_user && (c.other_user.display_name || c.other_user.username)) || '—') + '</span>' +
+                '<span class="chat-row-time">' + (c.last_message_at ? timeAgo(c.last_message_at) : '') + '</span>' +
+              '</div>' +
+              '<div class="chat-row-bottom">' +
+                '<span class="chat-row-preview">' + (c.last_message ? esc(c.last_message.slice(0, 50)) : 'No messages') + '</span>' +
+                (c.unread_count > 0 ? '<span class="chat-unread-dot">' + c.unread_count + '</span>' : '') +
+              '</div>' +
+            '</div>';
+          el.onclick = function() { nav.go('conv', { conversation_id: c.id, other_user: c.other_user }); };
+          list.appendChild(el);
+        });
+      } catch (e) { list.innerHTML = '<div class="empty-state">' + e.message + '</div>'; }
+    },
+    async newDM() {
+      const username = prompt('Enter username to message:');
+      if (!username) return;
+      try {
+        const ud = await API.json('GET', '/api/users/' + username.trim());
+        const u  = ud.user;
+        const d  = await API.json('POST', '/api/chat/conversations', { user_id: u.id });
+        nav.go('conv', { conversation_id: d.conversation_id, other_user: u });
+      } catch (e) { toast(e.message); }
+    },
+  };
+
+  /* ─────────────── CHAT CONVERSATION ─────────────── */
+  const chatConv = {
+    async open(data) {
+      S.convId     = data.conversation_id;
+      S.convOther  = data.other_user || null;
+      S.msgBefore  = null;
+      S.msgLoading = false;
+
+      document.getElementById('topbar-title').textContent =
+        S.convOther ? (S.convOther.display_name || S.convOther.username) : 'Chat';
+
+      document.getElementById('conv-user').innerHTML = S.convOther
+        ? avatar(S.convOther, 36) +
+          '<div><span class="conv-user-name">' + esc(S.convOther.display_name || S.convOther.username) + '</span>' +
+          (S.convOther.is_verified ? '<svg class="verified-ico-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#7B61FF"/><path d="M8 12l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '') +
+          '</div>'
         : '';
 
-      return `<div class="post-card" id="post-${post.id}">
-        <div class="post-header">
-          <div class="post-user" onclick="App.nav.userProfile('${escapeHtml(u.username)}')">
-            <div class="post-avatar">${userAvatar(u, 40)}</div>
-            <div class="post-user-info">
-              <div class="post-display-name">
-                ${escapeHtml(u.display_name || u.username)}
-                ${u.is_verified ? '<span class="verified-badge">✓</span>' : ''}
-              </div>
-              <div class="post-username-time">@${escapeHtml(u.username)} · ${timeAgo(post.created_at)}</div>
-            </div>
-          </div>
-          <button class="post-menu-btn" onclick="App.post.showMenu(${post.id}, '${escapeHtml(u.username)}')">⋯</button>
-        </div>
-        ${post.content ? `<div class="post-content">${parseContent(post.content)}</div>` : ''}
-        ${mediaHtml}
-        ${tagsHtml}
-        <div class="post-actions">
-          <button class="action-btn ${post.is_liked ? 'liked' : ''}" onclick="App.post.toggleLike(${post.id}, this)">
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="${post.is_liked ? 'currentColor' : 'none'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-            <span>${formatCount(post.like_count)}</span>
-          </button>
-          <button class="action-btn" onclick="App.comments.open(${post.id})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            <span>${formatCount(post.comment_count)}</span>
-          </button>
-          <button class="action-btn" onclick="App.post.share(${post.id})">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-          </button>
-          <button class="action-btn ${post.is_bookmarked ? 'bookmarked' : ''}" onclick="App.post.toggleBookmark(${post.id}, this)" style="margin-left:auto">
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="${post.is_bookmarked ? 'currentColor' : 'none'}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
-          </button>
-        </div>
-      </div>`;
+      const hasE2EE = !!S.keyPair;
+      document.getElementById('conv-e2ee-badge').style.display = hasE2EE ? 'flex'  : 'none';
+      document.getElementById('e2ee-notice').style.display     = hasE2EE ? 'flex'  : 'none';
+
+      if (hasE2EE && S.convOther) await chatConv._fetchPeerKey(S.convOther.id);
+
+      WS.subscribe(S.convId);
+      document.getElementById('msg-list').innerHTML = '';
+      await chatConv._loadMsgs(false);
+
+      const ml = document.getElementById('msg-list');
+      ml.scrollTop = ml.scrollHeight;
+      ml.onscroll  = function() { if (ml.scrollTop < 80 && !S.msgLoading) chatConv._loadMsgs(true); };
     },
 
-    setupInfiniteScroll() {
-      const container = document.getElementById('screen-home');
-      container.addEventListener('scroll', () => {
-        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 200) {
-          App.feed.load();
+    async _fetchPeerKey(uid) {
+      if (S.peerPubs[uid]) return S.peerPubs[uid];
+      try { const d = await API.json('GET', '/api/auth/public-key/' + uid); S.peerPubs[uid] = d.public_key; return d.public_key; }
+      catch (_) { return null; }
+    },
+
+    async _sharedKey(otherUid) {
+      if (S.sharedKeys[otherUid]) return S.sharedKeys[otherUid];
+      const pub = await chatConv._fetchPeerKey(otherUid);
+      if (!pub || !S.keyPair) return null;
+      try { const k = await E2EE.getSharedKey(S.keyPair, pub); S.sharedKeys[otherUid] = k; return k; }
+      catch (_) { return null; }
+    },
+
+    async _loadMsgs(more) {
+      if (S.msgLoading) return;
+      S.msgLoading = true;
+      const ml    = document.getElementById('msg-list');
+      const prevH = ml.scrollHeight;
+      try {
+        const url  = '/api/chat/conversations/' + S.convId + '/messages?limit=30' + (S.msgBefore ? '&before=' + S.msgBefore : '');
+        const data = await API.json('GET', url);
+        const msgs = data.messages || [];
+        if (msgs.length) {
+          S.msgBefore = msgs[0].id;
+          const frag = document.createDocumentFragment();
+          for (var i = 0; i < msgs.length; i++) frag.appendChild(await chatConv._mkBubble(msgs[i]));
+          if (more) { ml.prepend(frag); ml.scrollTop = ml.scrollHeight - prevH; }
+          else { ml.appendChild(frag); }
         }
-      });
-    },
-  },
-
-  /* ─── STORIES ─── */
-  stories: {
-    async load() {
-      const row = document.getElementById('stories-row');
-      try {
-        const data = await API.get('/feed/stories');
-        const groups = data.story_groups || [];
-
-        /* My story add button */
-        let html = `<div class="story-item story-add" onclick="App.stories.showCreate()">
-          <div class="story-avatar-wrap add"><div class="story-avatar-inner">+</div></div>
-          <span>Your Story</span>
-        </div>`;
-
-        html += groups.map((g, i) => `
-          <div class="story-item" onclick="App.stories.open(${i})">
-            <div class="story-avatar-wrap ${g.has_unviewed ? '' : 'viewed'}">
-              <div class="story-avatar-inner">
-                ${g.user.avatar_url ? `<img src="${escapeHtml(g.user.avatar_url)}" alt=""/>` : avatarPlaceholder(g.user.display_name)}
-              </div>
-            </div>
-            <span>${escapeHtml(g.user.display_name || g.user.username)}</span>
-          </div>
-        `).join('');
-
-        row.innerHTML = html;
-        window._storyGroups = groups;
-      } catch(_) {}
+      } catch (e) { toast(e.message); }
+      finally { S.msgLoading = false; }
     },
 
-    open(groupIdx) {
-      window._storyGroups = window._storyGroups || [];
-      State.activeStoryGroup = groupIdx;
-      State.activeStoryIdx   = 0;
-      this._showStory();
-      document.getElementById('modal-story-viewer').classList.remove('hidden');
-    },
-
-    _showStory() {
-      const group = (window._storyGroups || [])[State.activeStoryGroup];
-      if (!group) { this.close(); return; }
-      const story = group.stories[State.activeStoryIdx];
-      if (!story) {
-        if (State.activeStoryGroup < (window._storyGroups || []).length - 1) {
-          State.activeStoryGroup++;
-          State.activeStoryIdx = 0;
-          this._showStory();
-        } else {
-          this.close();
+    async _mkBubble(m) {
+      const isMine = S.user && m.sender_id === S.user.id;
+      var txt = m.content;
+      if (m.is_encrypted && S.keyPair) {
+        const otherId = isMine ? (S.convOther && S.convOther.id) : m.sender_id;
+        if (otherId) {
+          try {
+            const k = await chatConv._sharedKey(otherId);
+            if (k) txt = await E2EE.decrypt(k, txt);
+            else   txt = '[Key not available]';
+          } catch (_) { txt = '[Decryption failed]'; }
         }
-        return;
       }
-
-      /* Progress segments */
-      const total = group.stories.length;
-      const pbEl  = document.getElementById('story-progress-bar');
-      pbEl.innerHTML = group.stories.map((_, i) => `
-        <div class="story-segment">
-          <div class="story-segment-fill ${i < State.activeStoryIdx ? 'done' : i === State.activeStoryIdx ? 'active' : ''}"></div>
-        </div>
-      `).join('');
-
-      /* User info */
-      document.getElementById('story-viewer-user').innerHTML = `
-        <div class="story-avatar-wrap viewed" style="width:36px;height:36px;padding:1px;">
-          <div class="story-avatar-inner" style="font-size:14px;">
-            ${group.user.avatar_url ? `<img src="${escapeHtml(group.user.avatar_url)}" alt=""/>` : avatarPlaceholder(group.user.display_name)}
-          </div>
-        </div>
-        <span style="color:white;font-weight:600;font-size:14px;">${escapeHtml(group.user.display_name || group.user.username)}</span>
-        <span style="color:rgba(255,255,255,0.6);font-size:12px;">${timeAgo(story.created_at)}</span>
-      `;
-
-      document.getElementById('story-viewer-text').textContent = story.content || '';
-
-      /* Auto-advance */
-      clearTimeout(State.storyTimer);
-      State.storyTimer = setTimeout(() => this.next(), 5000);
-
-      /* Mark viewed */
-      API.post(`/feed/stories/${story.id}/view`, {}).catch(() => {});
+      const el = document.createElement('div');
+      el.className = 'msg-bubble ' + (isMine ? 'mine' : 'theirs');
+      el.innerHTML =
+        '<div class="msg-text">' + esc(txt) + '</div>' +
+        '<div class="msg-meta">' +
+          (m.is_encrypted ? '<span class="msg-enc-dot" title="End-to-end encrypted">🔒</span>' : '') +
+          '<span class="msg-time">' + timeAgo(m.created_at) + '</span>' +
+        '</div>';
+      return el;
     },
 
-    next() {
-      clearTimeout(State.storyTimer);
-      State.activeStoryIdx++;
-      this._showStory();
+    async send() {
+      const inp = document.getElementById('msg-inp');
+      const txt = inp.value.trim();
+      if (!txt || !S.convId) return;
+      inp.value = '';
+      try {
+        var body;
+        const k = S.convOther ? await chatConv._sharedKey(S.convOther.id) : null;
+        if (k) { const ct = await E2EE.encrypt(k, txt); body = { content: ct, is_encrypted: true }; }
+        else   { body = { content: txt, is_encrypted: false }; }
+        const data = await API.json('POST', '/api/chat/conversations/' + S.convId + '/messages', body);
+        const el   = await chatConv._mkBubble(data.message);
+        el.classList.add('new');
+        const ml = document.getElementById('msg-list');
+        ml.appendChild(el);
+        ml.scrollTop = ml.scrollHeight;
+      } catch (e) { toast(e.message); }
     },
 
-    prev() {
-      clearTimeout(State.storyTimer);
-      if (State.activeStoryIdx > 0) { State.activeStoryIdx--; this._showStory(); }
-      else if (State.activeStoryGroup > 0) {
-        State.activeStoryGroup--;
-        State.activeStoryIdx = 0;
-        this._showStory();
+    wsMsg(data) {
+      if (data.type === 'new_message' && data.message && data.message.conversation_id === S.convId && data.message.sender_id !== (S.user && S.user.id)) {
+        chatConv._mkBubble(data.message).then(function(el) {
+          el.classList.add('new');
+          const ml = document.getElementById('msg-list');
+          ml.appendChild(el);
+          ml.scrollTop = ml.scrollHeight;
+        });
       }
     },
+  };
 
-    close() {
-      clearTimeout(State.storyTimer);
-      document.getElementById('modal-story-viewer').classList.add('hidden');
+  /* ─────────────── SETTINGS ─────────────── */
+  const settings = {
+    load() {
+      document.getElementById('settings-out').innerHTML =
+        '<div class="settings-list">' +
+          '<div class="settings-section-title">Account</div>' +
+          '<button class="settings-row" onclick="App.nav.go(\'editprofile\')">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+            'Edit Profile' +
+            '<svg class="settings-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' +
+          '</button>' +
+          '<button class="settings-row" onclick="App.nav.go(\'2fa\')">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+            'Two-Factor Authentication' +
+            '<svg class="settings-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' +
+          '</button>' +
+          '<div class="settings-section-title">Security & Privacy</div>' +
+          '<button class="settings-row" onclick="App.settings.changePw()">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+            'Change Password' +
+            '<svg class="settings-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' +
+          '</button>' +
+          '<button class="settings-row" onclick="App.settings.regenE2EE()">' +
+            '<span class="e2ee-badge-sm">E2EE</span>' +
+            'Regenerate Encryption Keys' +
+            '<svg class="settings-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>' +
+          '</button>' +
+          '<div class="settings-section-title">Danger Zone</div>' +
+          '<button class="settings-row danger" onclick="App.auth.logout()">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
+            'Sign Out' +
+          '</button>' +
+        '</div>';
     },
-
-    async showCreate() {
-      const content = prompt('What\'s your story?');
-      if (!content) return;
+    changePw() {
+      const cur = prompt('Current password:');
+      if (!cur) return;
+      const nw = prompt('New password (8+ chars, A-Z, a-z, 0-9):');
+      if (!nw) return;
+      API.json('POST', '/api/auth/change-password', { current_password: cur, new_password: nw })
+        .then(function() { toast('Password changed. Please sign in again.'); auth.logout(); })
+        .catch(function(e) { toast(e.message); });
+    },
+    async regenE2EE() {
+      if (!confirm('Regenerate E2EE keys? Previous encrypted messages will not be readable with the new key.')) return;
+      localStorage.removeItem('tw_kp_' + S.user.id);
+      S.sharedKeys = {}; S.peerPubs = {};
       try {
-        await API.post('/feed/stories', { content });
-        App.toast('Story posted! 🎉');
-        this.load();
-      } catch(e) { App.toast(e.message); }
+        S.keyPair = await E2EE.init(S.user.id);
+        const pub = S.keyPair._pubB64 || await E2EE.exportPubRaw(S.keyPair);
+        S.keyPair._pubB64 = pub;
+        await API.json('PUT', '/api/auth/public-key', { public_key: pub });
+        toast('E2EE keys regenerated!');
+      } catch (e) { toast(e.message); }
     },
+  };
 
-    async likeCurrentStory() {
-      App.toast('❤️ Liked!');
+  /* ─────────────── EDIT PROFILE ─────────────── */
+  const editProfile = {
+    load() {
+      const u = S.user;
+      document.getElementById('editprofile-out').innerHTML =
+        '<div class="edit-form">' +
+          '<div class="field-wrap"><label class="field-label">Display Name</label>' +
+            '<input id="ep-name" class="glass-input" type="text" value="' + esc(u.display_name || '') + '" maxlength="80"></div>' +
+          '<div class="field-wrap"><label class="field-label">Bio</label>' +
+            '<textarea id="ep-bio" class="glass-input" rows="3" maxlength="300">' + esc(u.bio || '') + '</textarea></div>' +
+          '<div class="field-wrap"><label class="field-label">Website</label>' +
+            '<input id="ep-web" class="glass-input" type="url" value="' + esc(u.website || '') + '" placeholder="https://"></div>' +
+          '<div class="field-wrap"><label class="field-label">Location</label>' +
+            '<input id="ep-loc" class="glass-input" type="text" value="' + esc(u.location || '') + '" maxlength="100"></div>' +
+          '<button class="btn-grad btn-full" onclick="App.editProfile.save()">Save Changes</button>' +
+        '</div>';
     },
-  },
-
-  /* ─── POSTS ─── */
-  post: {
-    _mediaFiles: [],
-    _mediaUrls:  [],
-
-    showCreate() {
-      this._mediaFiles = [];
-      this._mediaUrls  = [];
-      document.getElementById('post-content-input').value = '';
-      document.getElementById('post-char-count').textContent = '5000';
-      document.getElementById('create-media-preview').innerHTML = '';
-      document.getElementById('modal-create-post').classList.remove('hidden');
-
-      /* Show current user avatar */
-      if (State.user) {
-        document.getElementById('create-post-user').innerHTML = `
-          <div class="post-avatar" style="width:36px;height:36px;">${userAvatar(State.user, 36)}</div>
-          <span style="font-weight:600;font-size:14px;">${escapeHtml(State.user.display_name || State.user.username)}</span>
-        `;
-      }
-    },
-
-    closeCreate() {
-      document.getElementById('modal-create-post').classList.add('hidden');
-    },
-
-    countChars() {
-      const len = document.getElementById('post-content-input').value.length;
-      const el  = document.getElementById('post-char-count');
-      el.textContent = 5000 - len;
-      el.style.color = len > 4500 ? '#FF4444' : 'var(--text-3)';
-    },
-
-    handleMedia(e) {
-      const files = Array.from(e.target.files);
-      this._mediaFiles.push(...files);
-      const preview = document.getElementById('create-media-preview');
-      files.forEach((file, i) => {
-        const url = URL.createObjectURL(file);
-        const idx = this._mediaFiles.length - files.length + i;
-        const el  = document.createElement('div');
-        el.style.cssText = 'position:relative;display:inline-block;';
-        el.innerHTML = file.type.startsWith('video')
-          ? `<video src="${url}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;"></video>`
-          : `<img src="${url}" class="create-media-thumb"/>`;
-        el.insertAdjacentHTML('beforeend', `<button class="media-remove-btn" onclick="App.post.removeMedia(${idx}, this.parentElement)">✕</button>`);
-        preview.appendChild(el);
-      });
-    },
-
-    removeMedia(idx, el) {
-      this._mediaFiles.splice(idx, 1);
-      el.remove();
-    },
-
-    addLocation() {
-      App.toast('Location feature coming soon!');
-    },
-
-    async submit() {
-      const content    = document.getElementById('post-content-input').value.trim();
-      const visibility = document.getElementById('post-visibility').value;
-
-      if (!content && !this._mediaFiles.length) {
-        App.toast('Post must have content or media.');
-        return;
-      }
-
-      const btn = document.querySelector('#modal-create-post .btn-primary-sm');
-      btn.disabled = true; btn.textContent = 'Posting…';
-
-      try {
-        let media_urls = [];
-        let media_type = 'none';
-
-        if (this._mediaFiles.length) {
-          const form = new FormData();
-          this._mediaFiles.forEach(f => form.append('files', f));
-          const uploadData = await API.upload('/upload/media', form);
-          media_urls = uploadData.urls;
-          media_type = uploadData.media_type;
-        }
-
-        const data = await API.post('/posts', { content, media_urls, media_type, visibility });
-        this.closeCreate();
-        App.toast('Posted! ✨');
-
-        /* Prepend to feed */
-        const fc = document.getElementById('feed-container');
-        fc.insertAdjacentHTML('afterbegin', App.feed.renderPostCard(data.post));
-      } catch(e) {
-        App.toast(e.message || 'Failed to post.');
-      } finally {
-        btn.disabled = false; btn.textContent = 'Post';
-      }
-    },
-
-    async toggleLike(postId, btn) {
-      const isLiked = btn.classList.contains('liked');
-      const countEl = btn.querySelector('span');
-      const current = parseInt(countEl.textContent.replace(/[KM]/, '')) || 0;
-
-      btn.classList.toggle('liked');
-      const svg = btn.querySelector('svg');
-      svg.setAttribute('fill', isLiked ? 'none' : 'currentColor');
-
-      try {
-        if (isLiked) {
-          const d = await API.delete(`/posts/${postId}/like`);
-          countEl.textContent = formatCount(d.like_count);
-        } else {
-          const d = await API.post(`/posts/${postId}/like`, {});
-          countEl.textContent = formatCount(d.like_count);
-        }
-      } catch(e) {
-        btn.classList.toggle('liked');
-        svg.setAttribute('fill', isLiked ? 'currentColor' : 'none');
-        App.toast(e.message);
-      }
-    },
-
-    async toggleBookmark(postId, btn) {
-      const isBookmarked = btn.classList.contains('bookmarked');
-      btn.classList.toggle('bookmarked');
-      const svg = btn.querySelector('svg');
-      svg.setAttribute('fill', isBookmarked ? 'none' : 'currentColor');
-      try {
-        if (isBookmarked) { await API.delete(`/posts/${postId}/bookmark`); App.toast('Removed from bookmarks'); }
-        else               { await API.post(`/posts/${postId}/bookmark`, {}); App.toast('Saved to bookmarks ✓'); }
-      } catch(e) { btn.classList.toggle('bookmarked'); svg.setAttribute('fill', isBookmarked ? 'currentColor' : 'none'); }
-    },
-
-    share(postId) {
-      if (navigator.share) {
-        navigator.share({ title: 'Trowded Post', url: `${location.origin}/p/${postId}` }).catch(() => {});
-      } else {
-        navigator.clipboard?.writeText(`${location.origin}/p/${postId}`);
-        App.toast('Link copied! 🔗');
-      }
-    },
-
-    showMenu(postId, username) {
-      const isOwn = State.user?.username === username;
-      const actions = isOwn
-        ? [
-            { label: '✏️ Edit',   fn: () => App.post.editPost(postId) },
-            { label: '🗑️ Delete', fn: () => App.post.deletePost(postId), danger: true },
-          ]
-        : [
-            { label: '🚩 Report', fn: () => App.post.reportPost(postId) },
-            { label: '🚫 Block @' + username, fn: () => App.users.block(username) },
-          ];
-
-      /* Simple sheet */
-      const existing = document.getElementById('action-sheet');
-      if (existing) existing.remove();
-
-      const sheet = document.createElement('div');
-      sheet.id = 'action-sheet';
-      sheet.className = 'modal-overlay';
-      sheet.innerHTML = `<div class="modal-sheet" style="padding:16px;">
-        ${actions.map(a => `<button class="settings-item" style="${a.danger ? 'color:#FF4444;' : ''}" onclick="document.getElementById('action-sheet').remove(); (${a.fn.toString()})()">${a.label}</button>`).join('')}
-        <button class="settings-item" style="justify-content:center;" onclick="document.getElementById('action-sheet').remove()">Cancel</button>
-      </div>`;
-      sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
-      document.body.appendChild(sheet);
-    },
-
-    async deletePost(postId) {
-      if (!confirm('Delete this post?')) return;
-      try {
-        await API.delete(`/posts/${postId}`);
-        document.getElementById(`post-${postId}`)?.remove();
-        App.toast('Post deleted.');
-        if (State.currentPostId === postId) App.nav.back();
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async reportPost(postId) {
-      const reason = prompt('Reason for report?');
-      if (!reason) return;
-      try {
-        await API.post(`/posts/${postId}/report`, { reason });
-        App.toast('Report submitted.');
-      } catch(e) { App.toast(e.message); }
-    },
-
-    editPost(postId) { App.toast('Edit feature coming soon!'); },
-  },
-
-  /* ─── COMMENTS ─── */
-  comments: {
-    _postId: null,
-
-    open(postId) {
-      this._postId = postId;
-      document.getElementById('modal-comments').classList.remove('hidden');
-      document.getElementById('comments-list').innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-      if (State.user) {
-        document.getElementById('comment-avatar').innerHTML = userAvatar(State.user, 36);
-      }
-      this.load(postId);
-    },
-
-    close() {
-      document.getElementById('modal-comments').classList.add('hidden');
-      this._postId = null;
-    },
-
-    async load(postId) {
-      try {
-        const data = await API.get(`/posts/${postId}/comments?limit=30`);
-        const el   = document.getElementById('comments-list');
-        if (!data.comments.length) {
-          el.innerHTML = '<div class="empty-state" style="padding:24px;"><p>No comments yet. Be the first!</p></div>';
-          return;
-        }
-        el.innerHTML = data.comments.map(c => this._renderComment(c)).join('');
-      } catch(e) {
-        document.getElementById('comments-list').innerHTML = `<div style="padding:16px;color:var(--text-2);">${escapeHtml(e.message)}</div>`;
-      }
-    },
-
-    async loadInline(postId, container) {
-      try {
-        const data = await API.get(`/posts/${postId}/comments?limit=5`);
-        container.innerHTML = `<div style="padding:16px;border-top:1px solid var(--border);">
-          <h4 style="font-size:14px;font-weight:600;margin-bottom:12px;">Comments (${data.comments.length})</h4>
-          ${data.comments.map(c => this._renderComment(c)).join('')}
-          <button class="btn-text" onclick="App.comments.open(${postId})">View all comments</button>
-        </div>`;
-      } catch(_) {}
-    },
-
-    _renderComment(c) {
-      return `<div class="comment-item">
-        <div class="comment-avatar">${userAvatar(c, 32)}</div>
-        <div class="comment-body">
-          <div class="comment-username">${escapeHtml(c.display_name || c.username)}</div>
-          <div class="comment-text">${parseContent(c.content)}</div>
-          <div class="comment-meta">
-            <span>${timeAgo(c.created_at)}</span>
-            <button class="comment-like-btn" onclick="App.comments.likeComment(${c.id}, this)">
-              ❤️ ${c.like_count || 0}
-            </button>
-            <button class="comment-like-btn" onclick="App.comments.replyTo('${escapeHtml(c.username)}')">Reply</button>
-          </div>
-          ${c.replies && c.replies.length ? `<div style="margin-top:8px;">${c.replies.map(r => this._renderComment(r)).join('')}</div>` : ''}
-        </div>
-      </div>`;
-    },
-
-    async submit() {
-      const input = document.getElementById('comment-input');
-      const content = input.value.trim();
-      if (!content || !this._postId) return;
-
-      input.value = '';
-      try {
-        const data = await API.post(`/posts/${this._postId}/comments`, { content });
-        const el   = document.getElementById('comments-list');
-        el.insertAdjacentHTML('afterbegin', this._renderComment(data.comment));
-
-        /* Update comment count on card */
-        const card    = document.getElementById(`post-${this._postId}`);
-        const countEl = card?.querySelectorAll('.action-btn')[1]?.querySelector('span');
-        if (countEl) countEl.textContent = formatCount((parseInt(countEl.textContent) || 0) + 1);
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async likeComment(id, btn) {
-      try {
-        await API.post(`/posts/comments/${id}/like`, {});
-        const parts = btn.textContent.split(' ');
-        btn.textContent = `❤️ ${(parseInt(parts[1]) || 0) + 1}`;
-      } catch(e) { App.toast('Already liked'); }
-    },
-
-    replyTo(username) {
-      const input = document.getElementById('comment-input');
-      input.value = `@${username} `;
-      input.focus();
-    },
-  },
-
-  /* ─── EXPLORE ─── */
-  explore: {
-    _debounceTimer: null,
-    _hashtagMode: false,
-
-    async load() {
-      this._hashtagMode = false;
-      document.getElementById('search-results').classList.add('hidden');
-      document.getElementById('explore-content').style.display = '';
-      this.loadTrending();
-      this.loadGrid();
-    },
-
-    async loadTrending() {
-      try {
-        const data = await API.get('/feed/trending');
-        const el   = document.getElementById('explore-trending');
-        el.innerHTML = `<h3>🔥 Trending</h3><div class="trending-list">
-          ${data.hashtags.map(t => `
-            <div class="trending-item" onclick="App.explore.loadHashtag('${escapeHtml(t.name)}')">
-              <span class="trending-tag">#${escapeHtml(t.name)}</span>
-              <span class="trending-count">${formatCount(t.post_count)} posts</span>
-            </div>
-          `).join('')}
-        </div>`;
-      } catch(_) {}
-    },
-
-    async loadGrid() {
-      try {
-        const data = await API.get('/feed/explore?limit=18');
-        const el   = document.getElementById('explore-grid');
-        el.innerHTML = data.posts.map(p => `
-          <div class="explore-grid-item" onclick="App.nav.openPost(${p.id})">
-            ${p.media_urls && p.media_urls[0]
-              ? `<img src="${escapeHtml(p.media_urls[0])}" alt="" loading="lazy"/>`
-              : `<div class="explore-grid-placeholder" style="background:var(--bg-card);">
-                  <div class="posts-grid-item-text">${escapeHtml((p.content || '').slice(0, 120))}</div>
-                </div>`
-            }
-            <div class="posts-grid-stats">
-              <span>❤️ ${formatCount(p.like_count)}</span>
-              <span>💬 ${formatCount(p.comment_count)}</span>
-            </div>
-          </div>
-        `).join('');
-      } catch(_) {}
-    },
-
-    async loadHashtag(tag) {
-      this._hashtagMode = true;
-      document.getElementById('explore-content').style.display = 'none';
-      const resultsEl = document.getElementById('search-results');
-      resultsEl.classList.remove('hidden');
-      resultsEl.innerHTML = `<div class="loader-wrap"><div class="spinner"></div></div>`;
-      document.getElementById('explore-search-input').value = '#' + tag;
-
-      try {
-        const data = await API.get(`/feed/hashtag/${encodeURIComponent(tag)}`);
-        resultsEl.innerHTML = `
-          <div style="padding:16px;border-bottom:1px solid var(--border);">
-            <div style="font-size:22px;font-weight:700;">#${escapeHtml(tag)}</div>
-            <div style="font-size:14px;color:var(--text-2);margin-top:4px;">${formatCount(data.hashtag.post_count)} posts</div>
-          </div>
-          <div class="explore-grid">
-            ${data.posts.map(p => `
-              <div class="explore-grid-item" onclick="App.nav.openPost(${p.id})">
-                ${p.media_urls && p.media_urls[0]
-                  ? `<img src="${escapeHtml(p.media_urls[0])}" alt="" loading="lazy"/>`
-                  : `<div class="explore-grid-placeholder" style="background:var(--bg-card);padding:8px;"><div class="posts-grid-item-text">${escapeHtml((p.content||'').slice(0,100))}</div></div>`
-                }
-              </div>
-            `).join('')}
-          </div>`;
-      } catch(e) {
-        resultsEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">😕</div><h3>Not found</h3></div>`;
-      }
-    },
-
-    debounce() {
-      clearTimeout(this._debounceTimer);
-      this._debounceTimer = setTimeout(() => this.runSearch(), 400);
-    },
-
-    async runSearch() {
-      const q = document.getElementById('explore-search-input').value.trim();
-      if (!q || q.startsWith('#')) return;
-
-      const resultsEl = document.getElementById('search-results');
-      resultsEl.classList.remove('hidden');
-      document.getElementById('explore-content').style.display = 'none';
-      resultsEl.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-
-      try {
-        const data = await API.get(`/search?q=${encodeURIComponent(q)}`);
-        resultsEl.innerHTML = this._renderSearchResults(data);
-      } catch(e) {
-        resultsEl.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-      }
-    },
-
-    _renderSearchResults(data) {
-      let html = '';
-      if (data.users?.length) {
-        html += `<div class="search-results-section"><div class="search-section-title">People</div>
-          ${data.users.map(u => `
-            <div class="search-user-item" onclick="App.nav.userProfile('${escapeHtml(u.username)}')">
-              <div class="post-avatar">${userAvatar(u, 44)}</div>
-              <div style="flex:1;">
-                <div style="font-weight:600;font-size:14px;">${escapeHtml(u.display_name || u.username)} ${u.is_verified ? '<span class="verified-badge">✓</span>' : ''}</div>
-                <div style="font-size:12px;color:var(--text-3);">@${escapeHtml(u.username)} · ${formatCount(u.follower_count)} followers</div>
-              </div>
-            </div>
-          `).join('')}</div>`;
-      }
-      if (data.hashtags?.length) {
-        html += `<div class="search-results-section"><div class="search-section-title">Hashtags</div>
-          <div style="display:flex;flex-wrap:wrap;padding:4px 0;">
-            ${data.hashtags.map(t => `
-              <div class="search-tag-chip" onclick="App.explore.loadHashtag('${escapeHtml(t.name)}')">
-                <span class="search-tag-name">#${escapeHtml(t.name)}</span>
-                <span class="search-tag-count">${formatCount(t.post_count)}</span>
-              </div>
-            `).join('')}
-          </div></div>`;
-      }
-      if (!html) html = '<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>No results</h3></div>';
-      return html;
-    },
-  },
-
-  /* ─── SEARCH (full screen) ─── */
-  search: {
-    _timer: null,
-    async fullSearch() {
-      clearTimeout(this._timer);
-      this._timer = setTimeout(async () => {
-        const q  = document.getElementById('search-input-full').value.trim();
-        const el = document.getElementById('search-full-results');
-        if (!q) { el.innerHTML = ''; return; }
-
-        el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-        try {
-          const data = await API.get(`/search?q=${encodeURIComponent(q)}`);
-          el.innerHTML = App.explore._renderSearchResults(data);
-        } catch(e) {
-          el.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-        }
-      }, 350);
-    },
-  },
-
-  /* ─── NOTIFICATIONS ─── */
-  notifications: {
-    async load() {
-      const el = document.getElementById('notif-list');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-      try {
-        const data = await API.get('/notifications?limit=30');
-        if (!data.notifications.length) {
-          el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔔</div><h3>No notifications yet</h3><p>When people like or comment on your posts, you\'ll see it here.</p></div>';
-          return;
-        }
-        el.innerHTML = data.notifications.map(n => this._renderNotif(n)).join('');
-        /* Mark all as read after viewing */
-        setTimeout(() => API.post('/notifications/read-all', {}).catch(() => {}), 2000);
-      } catch(e) {
-        el.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-      }
-    },
-
-    async loadUnreadCount() {
-      try {
-        const data = await API.get('/notifications/unread-count');
-        const badge = document.getElementById('notif-badge');
-        if (data.count > 0) {
-          badge.textContent = data.count > 99 ? '99+' : data.count;
-          badge.classList.remove('hidden');
-        } else {
-          badge.classList.add('hidden');
-        }
-      } catch(_) {}
-    },
-
-    _renderNotif(n) {
-      const icons = { like: '❤️', comment: '💬', follow: '👤', message: '✉️', mention: '@' };
-      const iconClasses = { like: 'like', comment: 'comment', follow: 'follow', message: 'message' };
-      return `<div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="App.notifications.handleClick(${JSON.stringify(n).replace(/</g,'\\u003c')})">
-        <div class="notif-avatar">${n.actor_avatar ? `<img src="${escapeHtml(n.actor_avatar)}" alt=""/>` : avatarPlaceholder(n.actor_display_name || '?')}</div>
-        <div class="notif-content">
-          <div class="notif-text"><b>${escapeHtml(n.actor_display_name || 'Someone')}</b> ${escapeHtml(n.message)}</div>
-          <div class="notif-time">${timeAgo(n.created_at)}</div>
-        </div>
-        <div class="notif-icon ${iconClasses[n.type] || ''}">${icons[n.type] || '🔔'}</div>
-      </div>`;
-    },
-
-    handleClick(n) {
-      if (n.type === 'follow') App.nav.userProfile(n.actor_id || n.actor_username);
-      else if (['like', 'comment', 'mention'].includes(n.type) && n.entity_id) App.nav.openPost(n.entity_id);
-      else if (n.type === 'message') App.nav.go('chat');
-    },
-  },
-
-  /* ─── PROFILE ─── */
-  profile: {
-    async loadOwn() {
-      const el = document.getElementById('profile-content');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-      try {
-        const data = await API.get('/auth/me');
-        State.user = data.user;
-        this.renderFull(data.user, el, true);
-      } catch(e) {
-        el.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-      }
-    },
-
-    renderFull(user, container, isOwn = false) {
-      container.innerHTML = `
-        <div class="profile-cover">
-          ${user.cover_url ? `<img src="${escapeHtml(user.cover_url)}" alt="cover"/>` : ''}
-          <div class="profile-cover-gradient"></div>
-        </div>
-        <div class="profile-header">
-          <div class="profile-avatar-row">
-            <div class="profile-big-avatar">
-              ${user.avatar_url ? `<img src="${escapeHtml(user.avatar_url)}" alt=""/>` : `<div class="profile-big-avatar-placeholder">${avatarPlaceholder(user.display_name)}</div>`}
-            </div>
-            <div class="profile-actions">
-              ${isOwn
-                ? `<button class="btn-outline" onclick="App.nav.go('edit-profile')">Edit Profile</button>
-                   <button class="btn-outline" onclick="App.nav.go('settings')">⚙️</button>`
-                : `<button class="${user.is_following ? 'btn-following' : 'btn-follow'}" id="follow-btn-${user.id}" onclick="App.users.toggleFollow(${user.id}, '${escapeHtml(user.username)}')">
-                     ${user.is_following ? 'Following' : 'Follow'}
-                   </button>
-                   <button class="btn-outline" onclick="App.chat.openWithUser(${user.id})">Message</button>`
-              }
-            </div>
-          </div>
-          <div class="profile-display-name">
-            ${escapeHtml(user.display_name || user.username)}
-            ${user.is_verified ? '<span class="verified-badge">✓</span>' : ''}
-          </div>
-          <div class="profile-username">@${escapeHtml(user.username)}</div>
-          ${user.bio ? `<div class="profile-bio">${escapeHtml(user.bio)}</div>` : ''}
-          ${user.website ? `<a href="${escapeHtml(user.website)}" class="profile-website" target="_blank" rel="noopener">${escapeHtml(user.website)}</a>` : ''}
-          <div class="profile-stats">
-            <div class="stat-item" onclick="App.nav.openPost && App.profile.showPosts(${user.id})">
-              <span class="stat-number">${formatCount(user.post_count)}</span>
-              <span class="stat-label">Posts</span>
-            </div>
-            <div class="stat-item" onclick="App.users.showList(${user.id}, 'followers')">
-              <span class="stat-number">${formatCount(user.follower_count)}</span>
-              <span class="stat-label">Followers</span>
-            </div>
-            <div class="stat-item" onclick="App.users.showList(${user.id}, 'following')">
-              <span class="stat-number">${formatCount(user.following_count)}</span>
-              <span class="stat-label">Following</span>
-            </div>
-          </div>
-        </div>
-        <div class="profile-tabs">
-          <button class="profile-tab active" onclick="App.profile.loadTab(${user.id}, 'posts', this)">Posts</button>
-          ${isOwn ? '<button class="profile-tab" onclick="App.profile.loadTab(\'' + user.id + '\', \'bookmarks\', this)">Saved</button>' : ''}
-        </div>
-        <div id="profile-tab-content"></div>
-      `;
-      this.loadTab(user.id, 'posts', null, isOwn);
-    },
-
-    async loadTab(userId, tab, tabEl, isOwn) {
-      if (tabEl) {
-        document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
-        tabEl.classList.add('active');
-      }
-      const el = document.getElementById('profile-tab-content');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-
-      try {
-        let posts;
-        if (tab === 'bookmarks') {
-          const data = await API.get('/posts/bookmarks/all?limit=30');
-          posts = data.posts;
-        } else {
-          const data = await API.get(`/posts/user/${userId}?limit=30`);
-          posts = data.posts;
-        }
-
-        if (!posts.length) {
-          el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📷</div><h3>No posts yet</h3></div>';
-          return;
-        }
-
-        el.innerHTML = `<div class="posts-grid">${posts.map(p => `
-          <div class="posts-grid-item" onclick="App.nav.openPost(${p.id})">
-            ${p.media_urls && p.media_urls[0]
-              ? `<img src="${escapeHtml(p.media_urls[0])}" alt="" loading="lazy"/>`
-              : `<div class="posts-grid-item-text">${escapeHtml((p.content||'').slice(0,120))}</div>`
-            }
-            <div class="posts-grid-stats">
-              <span>❤️ ${formatCount(p.like_count)}</span>
-              <span>💬 ${formatCount(p.comment_count)}</span>
-            </div>
-          </div>
-        `).join('')}</div>`;
-      } catch(e) {
-        el.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-      }
-    },
-
-    renderEdit() {
-      const user = State.user;
-      if (!user) return;
-      document.getElementById('edit-profile-content').innerHTML = `
-        <div class="edit-profile-form">
-          <div class="edit-profile-avatar">
-            <label for="avatar-input" class="edit-profile-avatar-img">
-              ${user.avatar_url ? `<img src="${escapeHtml(user.avatar_url)}" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;"/>` : `<div style="font-size:28px;font-weight:700;color:var(--text-2);">${avatarPlaceholder(user.display_name)}</div>`}
-              <div class="edit-avatar-overlay">📷</div>
-            </label>
-            <span class="edit-profile-label">Change photo</span>
-            <input type="file" id="avatar-input" accept="image/*" class="hidden" onchange="App.profile.uploadAvatar(event)"/>
-          </div>
-          <div class="edit-form-field">
-            <label>Display Name</label>
-            <input id="edit-display-name" type="text" value="${escapeHtml(user.display_name || '')}" maxlength="80"/>
-          </div>
-          <div class="edit-form-field">
-            <label>Bio</label>
-            <textarea id="edit-bio" maxlength="160">${escapeHtml(user.bio || '')}</textarea>
-          </div>
-          <div class="edit-form-field">
-            <label>Website</label>
-            <input id="edit-website" type="url" value="${escapeHtml(user.website || '')}" placeholder="https://..."/>
-          </div>
-          <div class="edit-form-field">
-            <label>Location</label>
-            <input id="edit-location" type="text" value="${escapeHtml(user.location || '')}" maxlength="100"/>
-          </div>
-        </div>
-      `;
-    },
-
-    async uploadAvatar(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const form = new FormData();
-      form.append('avatar', file);
-      try {
-        App.toast('Uploading…');
-        const data = await API.upload('/upload/avatar', form);
-        State.user.avatar_url = data.url;
-        App.toast('Avatar updated! ✓');
-        App.updateNavAvatar();
-        this.renderEdit();
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async saveEdit() {
-      const display_name = document.getElementById('edit-display-name')?.value.trim();
-      const bio          = document.getElementById('edit-bio')?.value.trim();
-      const website      = document.getElementById('edit-website')?.value.trim();
-      const location     = document.getElementById('edit-location')?.value.trim();
-
-      try {
-        const data = await API.patch('/users/profile', { display_name, bio, website, location });
-        State.user = { ...State.user, ...data.user };
-        App.toast('Profile saved! ✓');
-        App.nav.back();
-        App.updateNavAvatar();
-      } catch(e) { App.toast(e.message); }
-    },
-  },
-
-  /* ─── USERS ─── */
-  users: {
-    async toggleFollow(userId, username) {
-      const btn = document.getElementById(`follow-btn-${userId}`);
-      const isFollowing = btn?.classList.contains('btn-following');
-
-      try {
-        if (isFollowing) {
-          await API.delete(`/users/${userId}/follow`);
-          if (btn) { btn.textContent = 'Follow'; btn.className = 'btn-follow'; }
-          App.toast('Unfollowed @' + username);
-        } else {
-          const data = await API.post(`/users/${userId}/follow`, {});
-          if (btn) {
-            btn.textContent = data.status === 'pending' ? 'Requested' : 'Following';
-            btn.className = 'btn-following';
-          }
-          App.toast(data.status === 'pending' ? 'Follow request sent' : 'Following @' + username + ' 👋');
-        }
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async block(username) {
-      if (!confirm(`Block @${username}?`)) return;
-      try {
-        const user = await API.get(`/users/${username}`);
-        await API.post(`/users/${user.user.id}/block`, {});
-        App.toast(`@${username} blocked.`);
-        App.nav.back();
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async showList(userId, type) {
-      const data = await API.get(`/users/${userId}/${type}?limit=30`);
-      const existing = document.getElementById('action-sheet');
-      if (existing) existing.remove();
-      const sheet = document.createElement('div');
-      sheet.id = 'action-sheet';
-      sheet.className = 'modal-overlay';
-      sheet.innerHTML = `<div class="modal-sheet" style="max-height:70vh;overflow-y:auto;">
-        <div class="modal-header">${type.charAt(0).toUpperCase() + type.slice(1)}
-          <button class="icon-btn" onclick="document.getElementById('action-sheet').remove()">✕</button>
-        </div>
-        <div style="padding:8px 16px;">
-          ${(data.users || []).map(u => `
-            <div class="search-user-item" onclick="document.getElementById('action-sheet').remove(); App.nav.userProfile('${escapeHtml(u.username)}')">
-              <div class="post-avatar" style="width:44px;height:44px;">${userAvatar(u, 44)}</div>
-              <div style="flex:1;">
-                <div style="font-weight:600;">${escapeHtml(u.display_name || u.username)} ${u.is_verified ? '<span class="verified-badge">✓</span>' : ''}</div>
-                <div style="font-size:12px;color:var(--text-3);">@${escapeHtml(u.username)}</div>
-              </div>
-              ${u.is_following !== undefined ? `<button class="${u.is_following ? 'btn-following' : 'btn-follow'}" style="font-size:12px;padding:6px 14px;" onclick="event.stopPropagation();App.users.toggleFollow(${u.id}, '${escapeHtml(u.username)}')">${u.is_following ? 'Following' : 'Follow'}</button>` : ''}
-            </div>
-          `).join('') || '<div class="empty-state" style="padding:24px;"><p>No users yet</p></div>'}
-        </div>
-      </div>`;
-      sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
-      document.body.appendChild(sheet);
-    },
-  },
-
-  /* ─── CHAT ─── */
-  chat: {
-    _convId: null,
-    _ws: null,
-
-    async loadList() {
-      const el = document.getElementById('chat-list');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-      try {
-        const data = await API.get('/chat/conversations');
-        if (!data.conversations.length) {
-          el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✉️</div><h3>No messages</h3><p>Start a conversation with someone you follow.</p></div>';
-          return;
-        }
-        el.innerHTML = data.conversations.map(c => `
-          <div class="chat-item" onclick="App.chat.openConversation(${c.id})">
-            <div class="chat-avatar">${c.other_user ? userAvatar(c.other_user, 50) : '?'}</div>
-            <div class="chat-info">
-              <div class="chat-name">
-                ${escapeHtml(c.other_user?.display_name || c.other_user?.username || 'Unknown')}
-                ${c.last_message_at ? `<span class="chat-time">${timeAgo(c.last_message_at)}</span>` : ''}
-              </div>
-              <div class="chat-last-msg">${escapeHtml(c.last_message || 'No messages yet')}</div>
-            </div>
-            ${c.unread_count > 0 ? `<span class="chat-unread">${c.unread_count}</span>` : ''}
-          </div>
-        `).join('');
-      } catch(e) {
-        el.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-      }
-    },
-
-    async openConversation(convId) {
-      this._convId = convId;
-      App.nav.go('conversation');
-      await this.loadMessages(convId);
-      this.connectWS(convId);
-    },
-
-    async openWithUser(userId) {
-      try {
-        const data = await API.post('/chat/conversations', { user_id: userId });
-        this.openConversation(data.conversation_id);
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async loadMessages(convId) {
-      const el = document.getElementById('messages-container');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-      try {
-        /* Get other user info */
-        const convs = await API.get('/chat/conversations');
-        const conv  = (convs.conversations || []).find(c => c.id === convId);
-        if (conv?.other_user) {
-          document.getElementById('conv-user-info').innerHTML = `
-            <div class="post-avatar" style="width:36px;height:36px;">${userAvatar(conv.other_user, 36)}</div>
-            <div>
-              <div style="font-weight:600;font-size:14px;">${escapeHtml(conv.other_user.display_name || conv.other_user.username)}</div>
-              <div style="font-size:11px;color:var(--text-3);">@${escapeHtml(conv.other_user.username)}</div>
-            </div>
-          `;
-        }
-
-        const data = await API.get(`/chat/conversations/${convId}/messages`);
-        this.renderMessages(el, data.messages);
-      } catch(e) {
-        el.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
-      }
-    },
-
-    renderMessages(el, messages) {
-      if (!messages.length) {
-        el.innerHTML = '<div class="empty-state" style="padding:32px;"><div class="empty-state-icon">👋</div><p>Say hello!</p></div>';
-        return;
-      }
-      el.innerHTML = messages.map(m => {
-        const isMine = m.sender_id === State.user?.id;
-        return `<div style="display:flex;justify-content:${isMine ? 'flex-end' : 'flex-start'};">
-          <div class="msg-bubble ${isMine ? 'msg-sent' : 'msg-received'}">
-            ${escapeHtml(m.content)}
-            <div class="msg-time">${timeAgo(m.created_at)}</div>
-          </div>
-        </div>`;
-      }).join('');
-      el.scrollTop = el.scrollHeight;
-    },
-
-    async sendMessage() {
-      const input = document.getElementById('message-input');
-      const content = input.value.trim();
-      if (!content || !this._convId) return;
-      input.value = '';
-
-      try {
-        const data = await API.post(`/chat/conversations/${this._convId}/messages`, { content });
-        const el = document.getElementById('messages-container');
-        el.insertAdjacentHTML('beforeend', `
-          <div style="display:flex;justify-content:flex-end;">
-            <div class="msg-bubble msg-sent">
-              ${escapeHtml(data.message.content)}
-              <div class="msg-time">Just now</div>
-            </div>
-          </div>
-        `);
-        el.scrollTop = el.scrollHeight;
-      } catch(e) { App.toast(e.message); }
-    },
-
-    connectWS(convId) {
-      if (this._ws) { this._ws.close(); this._ws = null; }
-      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${proto}//${location.host}/ws`);
-
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ type: 'auth', token: API.getTokens().access }));
+    async save() {
+      const body = {
+        display_name: document.getElementById('ep-name').value.trim(),
+        bio:          document.getElementById('ep-bio').value.trim(),
+        website:      document.getElementById('ep-web').value.trim(),
+        location:     document.getElementById('ep-loc').value.trim(),
       };
-      ws.onmessage = (e) => {
+      try {
+        const data = await API.json('PUT', '/api/users/' + S.user.username, body);
+        Object.assign(S.user, data.user || body);
+        _updateNavAv();
+        toast('Profile updated!');
+        nav.back();
+      } catch (e) { toast(e.message); }
+    },
+  };
+
+  /* ─────────────── 2FA ─────────────── */
+  const twofa = {
+    load() {
+      const on = S.user && S.user.two_fa_enabled;
+      document.getElementById('twofa-out').innerHTML =
+        '<div class="settings-list">' +
+          '<div class="twofa-status ' + (on ? 'enabled' : 'disabled') + '">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+            '<div><strong>Two-Factor Authentication</strong>' +
+            '<p>Status: <span class="status-pill ' + (on ? 'active' : 'inactive') + '">' + (on ? 'Enabled' : 'Disabled') + '</span></p></div>' +
+          '</div>' +
+          (on
+            ? '<button class="btn-danger btn-full" onclick="App.twofa.disable()">Disable 2FA</button>'
+            : '<button class="btn-grad btn-full" onclick="App.twofa.setup()">Enable 2FA</button>') +
+        '</div>';
+    },
+    async setup() {
+      try {
+        const data = await API.json('POST', '/api/auth/2fa/setup');
+        document.getElementById('twofa-out').innerHTML =
+          '<div class="settings-list">' +
+            '<p class="twofa-instructions">Scan this QR code with Google Authenticator, Authy, or similar.</p>' +
+            (data.qr_code ? '<img src="' + data.qr_code + '" class="qr-code" alt="QR Code">' : '') +
+            '<p class="twofa-manual">Manual key: <code class="twofa-secret">' + data.secret + '</code></p>' +
+            '<div class="field-wrap">' +
+              '<input id="totp-v" class="glass-input" type="text" inputmode="numeric" maxlength="6" placeholder="Enter 6-digit code">' +
+            '</div>' +
+            '<button class="btn-grad btn-full" onclick="App.twofa.enable()">Verify & Enable</button>' +
+          '</div>';
+      } catch (e) { toast(e.message); }
+    },
+    async enable() {
+      try {
+        await API.json('POST', '/api/auth/2fa/enable', { totp_code: document.getElementById('totp-v').value.trim() });
+        if (S.user) S.user.two_fa_enabled = true;
+        toast('2FA enabled!'); twofa.load();
+      } catch (e) { toast(e.message); }
+    },
+    async disable() {
+      const pw   = prompt('Confirm password:');
+      const code = prompt('Enter 2FA code:');
+      if (!pw || !code) return;
+      try {
+        await API.json('POST', '/api/auth/2fa/disable', { password: pw, totp_code: code });
+        if (S.user) S.user.two_fa_enabled = false;
+        toast('2FA disabled.'); twofa.load();
+      } catch (e) { toast(e.message); }
+    },
+  };
+
+  /* ─────────────── ACTION SHEET ─────────────── */
+  function actionSheet(items) {
+    const body = document.getElementById('action-sheet-body');
+    const ov   = document.getElementById('action-sheet');
+    body.innerHTML = '<div class="modal-drag-bar"></div>' +
+      items.map(function(it, i) {
+        return '<button class="action-item' + (it.danger ? ' danger' : '') + '" data-idx="' + i + '">' + it.label + '</button>';
+      }).join('') +
+      '<button class="action-item action-cancel" onclick="App._closeAS()">Cancel</button>';
+    body.querySelectorAll('.action-item[data-idx]').forEach(function(btn) {
+      var idx = +btn.getAttribute('data-idx');
+      btn.onclick = function() { _closeAS(); items[idx].action(); };
+    });
+    ov.classList.remove('hidden');
+    ov.onclick = function(e) { if (e.target === ov) _closeAS(); };
+  }
+  function _closeAS() { document.getElementById('action-sheet').classList.add('hidden'); }
+
+  /* ─────────────── LIGHTBOX ─────────────── */
+  function lightbox(url) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    div.innerHTML = '<img src="' + url + '" style="max-width:95vw;max-height:95vh;border-radius:8px;object-fit:contain;">';
+    div.onclick = function() { div.remove(); };
+    document.body.appendChild(div);
+  }
+
+  /* ─────────────── PW STRENGTH ─────────────── */
+  function _pwStrength() {
+    const inp = document.getElementById('rg-pw');
+    if (!inp) return;
+    inp.addEventListener('input', function() {
+      const v = inp.value, fill = document.getElementById('pw-str-fill');
+      if (!fill) return;
+      var s = 0;
+      if (v.length >= 8) s++;
+      if (/[A-Z]/.test(v)) s++;
+      if (/[a-z]/.test(v)) s++;
+      if (/[0-9]/.test(v)) s++;
+      if (/[^A-Za-z0-9]/.test(v)) s++;
+      fill.style.width = (s / 5 * 100) + '%';
+      fill.style.background = s < 3 ? '#FF4757' : s < 4 ? '#FFA502' : '#2ED573';
+    });
+  }
+
+  /* ─────────────── INIT ─────────────── */
+  async function init() {
+    WS.on('new_message', function(d) { chatConv.wsMsg(d); });
+    WS.on('notification', function(d) {
+      S.notifCount++;
+      const b = document.getElementById('notif-badge');
+      b.textContent = S.notifCount > 99 ? '99+' : S.notifCount;
+      b.classList.remove('hidden');
+      toast((d.actor_username || 'Someone') + ' ' + (d.message || 'interacted with you'));
+    });
+
+    document.getElementById('sc-home').addEventListener('scroll', function(e) {
+      const el = e.target;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 200) feed.load();
+    });
+
+    _pwStrength();
+    setTimeout(function() { _moveIndicator('home'); }, 150);
+
+    const storedRF = localStorage.getItem('tw_rf');
+    setTimeout(async function() {
+      const splash = document.getElementById('splash');
+      splash.style.transition = 'opacity .5s';
+      splash.style.opacity = '0';
+      await new Promise(function(r) { setTimeout(r, 500); });
+      splash.style.display = 'none';
+
+      if (storedRF) {
         try {
-          const msg = JSON.parse(e.data);
-          if (msg.type === 'auth_ok') {
-            ws.send(JSON.stringify({ type: 'subscribe', conversation_id: convId }));
-          } else if (msg.type === 'new_message' && msg.message.sender_id !== State.user?.id) {
-            const el = document.getElementById('messages-container');
-            if (el) {
-              el.insertAdjacentHTML('beforeend', `
-                <div style="display:flex;justify-content:flex-start;">
-                  <div class="msg-bubble msg-received">
-                    ${escapeHtml(msg.message.content)}
-                    <div class="msg-time">Just now</div>
-                  </div>
-                </div>
-              `);
-              el.scrollTop = el.scrollHeight;
+          const r = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: storedRF }),
+          });
+          if (r.ok) {
+            const tk = await r.json();
+            API.setTokens(tk.access_token, tk.refresh_token || storedRF);
+            const ur = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + _accessToken } });
+            if (ur.ok) {
+              const ud = await ur.json();
+              S.user = ud.user;
+              try {
+                S.keyPair = await E2EE.init(S.user.id);
+                const pub = S.keyPair._pubB64 || await E2EE.exportPubRaw(S.keyPair);
+                S.keyPair._pubB64 = pub;
+                await API.json('PUT', '/api/auth/public-key', { public_key: pub });
+              } catch (_) {}
+              WS.connect();
+              document.getElementById('auth-screen').classList.add('hidden');
+              document.getElementById('app').classList.remove('hidden');
+              _updateNavAv();
+              nav.go('home');
+              _pollNotifs();
+              feed.load(true);
+              stories.load();
+              return;
             }
           }
-        } catch(_) {}
-      };
-      ws.onerror = () => {};
-      ws.onclose = () => {};
-      this._ws = ws;
-    },
-
-    showNewDM() {
-      const q = prompt('Search username to message:');
-      if (q) {
-        API.get(`/search/users?q=${encodeURIComponent(q)}&limit=5`).then(data => {
-          if (!data.users?.length) { App.toast('No users found'); return; }
-          const u = data.users[0];
-          this.openWithUser(u.id);
-        }).catch(e => App.toast(e.message));
+        } catch (_) {}
       }
-    },
-  },
+      document.getElementById('auth-screen').classList.remove('hidden');
+    }, 2000);
+  }
 
-  /* ─── SETTINGS ─── */
-  settings: {
-    render() {
-      const user = State.user;
-      document.getElementById('settings-content').innerHTML = `
-        <div class="settings-section">
-          <div class="settings-section-title">Account</div>
-          <div class="settings-item" onclick="App.nav.go('edit-profile')">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(123,97,255,0.15);">👤</div>
-              <div><div class="settings-item-text">Edit Profile</div></div>
-            </div>
-            <span class="settings-arrow">›</span>
-          </div>
-          <div class="settings-item" onclick="App.settings.changePassword()">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(255,97,171,0.15);">🔑</div>
-              <div><div class="settings-item-text">Change Password</div></div>
-            </div>
-            <span class="settings-arrow">›</span>
-          </div>
-          <div class="settings-item" onclick="App.nav.go('2fa')">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(0,210,180,0.15);">🛡️</div>
-              <div>
-                <div class="settings-item-text">Two-Factor Authentication</div>
-                <div class="settings-item-sub">${user?.two_fa_enabled ? 'Enabled ✓' : 'Disabled'}</div>
-              </div>
-            </div>
-            <span class="settings-arrow">›</span>
-          </div>
-          <div class="settings-item" onclick="App.settings.viewSessions()">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(255,193,7,0.15);">📱</div>
-              <div>
-                <div class="settings-item-text">Active Sessions</div>
-                <div class="settings-item-sub">Manage logged-in devices</div>
-              </div>
-            </div>
-            <span class="settings-arrow">›</span>
-          </div>
-        </div>
-        <div class="settings-section">
-          <div class="settings-section-title">Privacy</div>
-          <div class="settings-item">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(123,97,255,0.15);">🔒</div>
-              <div>
-                <div class="settings-item-text">Private Account</div>
-                <div class="settings-item-sub">Only followers see your posts</div>
-              </div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" ${user?.is_private ? 'checked' : ''} onchange="App.settings.togglePrivacy(this.checked)"/>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-        <div class="settings-section">
-          <div class="settings-section-title">Danger Zone</div>
-          <div class="settings-item" onclick="App.auth.logout()">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(255,68,68,0.15);">🚪</div>
-              <div><div class="settings-item-text" style="color:#FF4444;">Log Out</div></div>
-            </div>
-          </div>
-          <div class="settings-item" onclick="App.auth.logout()" style="opacity:0.7;">
-            <div class="settings-item-left">
-              <div class="settings-item-icon" style="background:rgba(255,68,68,0.1);">🗑️</div>
-              <div>
-                <div class="settings-item-text" style="color:#FF6666;">Log Out All Devices</div>
-                <div class="settings-item-sub">Sign out everywhere</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style="padding:24px;text-align:center;color:var(--text-3);font-size:12px;">
-          Trowded v1.0.0 · Made with ❤️<br/>
-          Logged in as @${escapeHtml(user?.username || '')}
-        </div>
-      `;
-    },
+  return {
+    init,
+    auth,
+    nav,
+    feed,
+    stories,
+    post,
+    comments,
+    explore,
+    search,
+    notifications,
+    profile,
+    chatList,
+    chat: chatConv,
+    settings,
+    editProfile,
+    twofa,
+    toast,
+    lightbox,
+    uploadAvatar,
+    _closeAS,
+  };
+})();
 
-    async togglePrivacy(isPrivate) {
-      try {
-        await API.patch('/users/privacy', { is_private: isPrivate });
-        if (State.user) State.user.is_private = isPrivate;
-        App.toast(isPrivate ? 'Account set to private 🔒' : 'Account set to public 🌍');
-      } catch(e) { App.toast(e.message); }
-    },
+/* ── global helpers used in inline HTML ── */
+function togglePw(id) {
+  const i = document.getElementById(id);
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
 
-    async changePassword() {
-      const current = prompt('Current password:');
-      if (!current) return;
-      const newPw   = prompt('New password (8+ chars, A-Z, a-z, 0-9):');
-      if (!newPw) return;
-
-      try {
-        await API.post('/auth/change-password', { current_password: current, new_password: newPw });
-        App.toast('Password changed. Please log in again.');
-        setTimeout(() => App.auth.logout(), 1500);
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async viewSessions() {
-      try {
-        const data = await API.get('/auth/sessions');
-        const existing = document.getElementById('action-sheet');
-        if (existing) existing.remove();
-        const sheet = document.createElement('div');
-        sheet.id = 'action-sheet';
-        sheet.className = 'modal-overlay';
-        sheet.innerHTML = `<div class="modal-sheet">
-          <div class="modal-header">Active Sessions
-            <button class="icon-btn" onclick="document.getElementById('action-sheet').remove()">✕</button>
-          </div>
-          <div style="padding:8px 16px;">
-            ${data.sessions.map(s => `
-              <div class="settings-item">
-                <div class="settings-item-left">
-                  <div class="settings-item-icon" style="background:var(--bg-elevated);">📱</div>
-                  <div>
-                    <div class="settings-item-text" style="font-size:13px;">${escapeHtml(s.device_info || 'Unknown device').slice(0,50)}</div>
-                    <div class="settings-item-sub">${escapeHtml(s.ip_address)} · ${timeAgo(s.created_at)}</div>
-                  </div>
-                </div>
-                <button class="btn-text" style="color:#FF4444;" onclick="App.settings.revokeSession(${s.id})">Revoke</button>
-              </div>
-            `).join('')}
-          </div>
-        </div>`;
-        sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
-        document.body.appendChild(sheet);
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async revokeSession(id) {
-      try {
-        await API.delete(`/auth/sessions/${id}`);
-        App.toast('Session revoked.');
-        document.getElementById('action-sheet')?.remove();
-        this.viewSessions();
-      } catch(e) { App.toast(e.message); }
-    },
-
-    render2FA() {
-      const user = State.user;
-      const el   = document.getElementById('twofa-content');
-      el.innerHTML = `
-        <div style="padding:24px;">
-          <div style="text-align:center;margin-bottom:28px;">
-            <div style="font-size:48px;margin-bottom:12px;">🛡️</div>
-            <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Two-Factor Authentication</h2>
-            <p style="color:var(--text-2);line-height:1.5;">Add an extra layer of security to your account with a time-based one-time password (TOTP).</p>
-          </div>
-          <div style="background:var(--bg-card);border-radius:var(--r-md);padding:16px;margin-bottom:20px;border:1px solid var(--border);">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:40px;height:40px;background:rgba(0,210,180,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;">✓</div>
-              <div>
-                <div style="font-weight:600;">Status: ${user?.two_fa_enabled ? '<span style="color:#00D2B4;">Enabled</span>' : '<span style="color:var(--text-3);">Disabled</span>'}</div>
-                <div style="font-size:12px;color:var(--text-2);">Use Google Authenticator or similar app</div>
-              </div>
-            </div>
-          </div>
-          ${user?.two_fa_enabled
-            ? `<button class="btn-outline btn-full" style="color:#FF4444;border-color:#FF4444;" onclick="App.settings.disable2FA()">Disable 2FA</button>`
-            : `<button class="btn-primary btn-full" onclick="App.settings.setup2FA()">Enable 2FA</button>`
-          }
-        </div>
-      `;
-    },
-
-    async setup2FA() {
-      const el = document.getElementById('twofa-content');
-      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
-      try {
-        const data = await API.post('/auth/2fa/setup', {});
-        el.innerHTML = `
-          <div style="padding:24px;">
-            <h3 style="margin-bottom:16px;">Scan QR Code</h3>
-            ${data.qr_code ? `<div style="text-align:center;margin-bottom:16px;"><img src="${data.qr_code}" alt="QR Code" style="border-radius:8px;max-width:200px;"/></div>` : ''}
-            <p style="color:var(--text-2);font-size:13px;margin-bottom:16px;">
-              Scan with <b>Google Authenticator</b>, <b>Authy</b>, or any TOTP app.<br/><br/>
-              Manual key: <code style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-size:12px;">${escapeHtml(data.secret)}</code>
-            </p>
-            <div class="edit-form-field">
-              <label>Enter 6-digit code to confirm</label>
-              <input id="totp-confirm" type="text" inputmode="numeric" maxlength="6" placeholder="000000"/>
-            </div>
-            <button class="btn-primary btn-full" onclick="App.settings.confirm2FA()">Confirm & Enable</button>
-          </div>
-        `;
-      } catch(e) { App.toast(e.message); this.render2FA(); }
-    },
-
-    async confirm2FA() {
-      const code = document.getElementById('totp-confirm')?.value.trim();
-      if (!code) { App.toast('Enter the code first.'); return; }
-      try {
-        await API.post('/auth/2fa/enable', { totp_code: code });
-        if (State.user) State.user.two_fa_enabled = true;
-        App.toast('2FA enabled! Your account is now more secure. 🛡️');
-        this.render2FA();
-      } catch(e) { App.toast(e.message); }
-    },
-
-    async disable2FA() {
-      const password = prompt('Enter your password to disable 2FA:');
-      if (!password) return;
-      const code = prompt('Enter current 2FA code:');
-      try {
-        await API.post('/auth/2fa/disable', { password, totp_code: code });
-        if (State.user) State.user.two_fa_enabled = false;
-        App.toast('2FA disabled.');
-        this.render2FA();
-      } catch(e) { App.toast(e.message); }
-    },
-  },
-};
-
-/* ─── Register password input listener ─── */
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('reg-password')?.addEventListener('input', e => checkPasswordStrength(e.target.value));
-
-  /* Infinite scroll for home feed */
-  App.feed.setupInfiniteScroll();
-
-  /* Close modals on overlay click */
-  document.getElementById('modal-create-post').addEventListener('click', e => {
-    if (e.target === e.currentTarget) App.post.closeCreate();
-  });
-  document.getElementById('modal-comments').addEventListener('click', e => {
-    if (e.target === e.currentTarget) App.comments.close();
-  });
-});
-
-/* ─── Kick off ─── */
-App.init();
+document.addEventListener('DOMContentLoaded', function() { App.init(); });

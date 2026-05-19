@@ -246,6 +246,20 @@ db.exec(`
   );
 `);
 
+/* ─── E2EE & security migrations (safe, idempotent) ─── */
+const e2eeMigrations = [
+  /* E2EE public key — clients upload their ECDH P-256 public key */
+  'ALTER TABLE users ADD COLUMN public_key TEXT DEFAULT NULL',
+  /* Flag whether a stored message ciphertext is E2EE encrypted */
+  'ALTER TABLE messages ADD COLUMN is_encrypted INTEGER DEFAULT 0',
+  /* Nonce / IV embedded in ciphertext — kept opaque on server side */
+  'ALTER TABLE messages ADD COLUMN cipher_meta TEXT DEFAULT ""',
+];
+
+for (const sql of e2eeMigrations) {
+  try { db.exec(sql); } catch (_) { /* already exists */ }
+}
+
 /* ─── Seed demo users ─── */
 const insertUser = db.prepare(`
   INSERT OR IGNORE INTO users
