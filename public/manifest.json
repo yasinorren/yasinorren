@@ -1,0 +1,16 @@
+{
+  "name": "Trowded – Social Media",
+  "short_name": "Trowded",
+  "description": "The next generation mobile social media platform",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0F",
+  "theme_color": "#7B61FF",
+  "icons": [
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["social", "lifestyle"],
+  "screenshots": []
+}
